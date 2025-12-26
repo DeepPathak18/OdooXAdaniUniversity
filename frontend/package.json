@@ -19,6 +19,7 @@
     "framer-motion": "^12.23.12",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.539.0",
+    "plugin-react": "^0.0.1-security",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.0",
