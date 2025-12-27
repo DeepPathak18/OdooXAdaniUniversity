@@ -66,7 +66,7 @@ const updateAvatar = (req, res) => {
       res.status(500).send('Server Error');
     }
   });
-});
+};
 
 // @route   GET api/profile/me
 // @desc    Get current user's profile
@@ -83,7 +83,7 @@ const getProfile = async (req, res) => {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
-});
+};
 
 // @route   PUT api/profile/me
 // @desc    Update user profile
@@ -147,7 +147,7 @@ const updateProfile = async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-});
+};
 
 // @route   GET api/profile/activity
 // @desc    Get user activity
@@ -160,6 +160,6 @@ const getActivity = async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-});
+};
 
 module.exports = { updateAvatar, getProfile, updateProfile, getActivity };

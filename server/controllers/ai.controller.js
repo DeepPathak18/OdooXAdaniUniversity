@@ -14,6 +14,6 @@ const chat = async (req, res) => {
     console.error("AI error:", err.response?.data || err.message);
     res.status(500).json({ error: "AI request failed" });
   }
-});
+};
 
 module.exports = { chat };
