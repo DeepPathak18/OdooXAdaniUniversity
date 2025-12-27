@@ -17,6 +17,10 @@ import ActivityPage from './pages/Activity';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import VerifyOtp from './pages/VerifyOtp';
+import Equipment from './pages/Equipment';
+import Teams from './pages/Teams';
+import WorkCenter from './pages/WorkCenter';
+import MaintenanceCalendar from './pages/MaintenanceCalendar';
 import Header from './components/common/Navbar';
 
 // Your PrivateRoute component remains the same
@@ -117,6 +121,22 @@ function App() {
         <Route
           path="/activity"
           element={<PrivateRoute user={user} onLogout={handleLogout}><ActivityPage /></PrivateRoute>}
+        />
+        <Route
+          path="/equipment"
+          element={<PrivateRoute><Equipment user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/teams"
+          element={<PrivateRoute><Teams user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/workcenter"
+          element={<PrivateRoute><WorkCenter user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/maintenance-calendar"
+          element={<PrivateRoute><MaintenanceCalendar user={user} onLogout={handleLogout} /></PrivateRoute>}
         />
 
         {/* A catch-all route to redirect unknown paths back to the home page */}

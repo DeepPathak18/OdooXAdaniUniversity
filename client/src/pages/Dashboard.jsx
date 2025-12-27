@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Wrench, Users, Calendar, FileText, Settings, Search, Plus, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { AlertCircle, Wrench, Users, Calendar, FileText, Settings, Search, Plus, TrendingUp, Clock, CheckCircle, ChevronDown, Monitor } from 'lucide-react';
 
 export default function Dashboard({ user, onLogout }) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Dashboard');
 
-  const tabs = ['Maintenance', 'Dashboard', 'Maintenance Calendar', 'Equipment', 'Reporting', 'Teams'];
+  const tabs = ['Maintenance', 'Dashboard', 'Maintenance Calendar', 'Reporting'];
+  const [showEquipmentDropdown, setShowEquipmentDropdown] = useState(false);
 
   const maintenanceData = [
     { id: 1, subject: 'Test activity', employee: 'Mitchell Admin', technician: 'Aka Foster', category: 'computer', stage: 'New Request', company: 'My company' },
@@ -54,6 +55,8 @@ export default function Dashboard({ user, onLogout }) {
                 onClick={() => {
                   if (tab === 'Maintenance') {
                     navigate('/maintenance');
+                  } else if (tab === 'Maintenance Calendar') {
+                    navigate('/maintenance-calendar');
                   } else if (tab === 'Reporting') {
                     navigate('/reporting');
                   } else {
@@ -69,6 +72,53 @@ export default function Dashboard({ user, onLogout }) {
                 {tab}
               </button>
             ))}
+            
+              {/* Teams Tab */}
+              <button
+                onClick={() => navigate('/teams')}
+                className={`px-4 py-3 font-medium transition-all flex items-center space-x-1 text-gray-400 hover:text-cyan-300`}
+              >
+                <Users className="w-4 h-4" />
+                <span>Teams</span>
+              </button>
+            
+              {/* Equipment Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowEquipmentDropdown(!showEquipmentDropdown)}
+                  className={`px-4 py-3 font-medium transition-all flex items-center space-x-1 text-gray-400 hover:text-cyan-300`}
+                >
+                  <Monitor className="w-4 h-4" />
+                  <span>Equipment</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showEquipmentDropdown ? 'rotate-180' : ''}`} />
+                </button>
+              
+                {/* Dropdown Menu */}
+                {showEquipmentDropdown && (
+                  <div className="absolute top-full left-0 mt-0 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                    <button
+                      onClick={() => {
+                        navigate('/workcenter');
+                        setShowEquipmentDropdown(false);
+                      }}
+                      className="w-full px-6 py-3 text-left text-gray-300 hover:bg-slate-700/50 hover:text-cyan-400 transition-all flex items-center space-x-2 first:rounded-t-lg"
+                    >
+                      <Wrench className="w-4 h-4" />
+                      <span>Work Center</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/equipment');
+                        setShowEquipmentDropdown(false);
+                      }}
+                      className="w-full px-6 py-3 text-left text-gray-300 hover:bg-slate-700/50 hover:text-cyan-400 transition-all flex items-center space-x-2 last:rounded-b-lg"
+                    >
+                      <Monitor className="w-4 h-4" />
+                      <span>Equipment List</span>
+                    </button>
+                  </div>
+                )}
+              </div>
           </div>
         </div>
       </nav>
@@ -77,10 +127,7 @@ export default function Dashboard({ user, onLogout }) {
       <main className="px-6 py-6">
         {/* Action Bar */}
         <div className="flex items-center justify-between mb-6">
-          <button 
-            onClick={() => navigate('/maintenance/new')}
-            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30"
-          >
+          <button className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30">
             <Plus className="w-5 h-5" />
             <span>New</span>
           </button>

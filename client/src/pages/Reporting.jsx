@@ -268,6 +268,12 @@ export default function Reporting({ user, onLogout }) {
                     navigate('/dashboard');
                   } else if (tab === 'Maintenance') {
                     navigate('/maintenance');
+                  } else if (tab === 'Maintenance Calendar') {
+                    navigate('/maintenance-calendar');
+                  } else if (tab === 'Equipment') {
+                    navigate('/equipment');
+                  } else if (tab === 'Teams') {
+                    navigate('/teams');
                   } else {
                     setActiveTab(tab);
                   }
