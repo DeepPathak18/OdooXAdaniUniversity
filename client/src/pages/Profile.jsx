@@ -1,85 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-<<<<<<< HEAD
 import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit, Save, X, Camera, Settings, Shield, Award, Globe, Linkedin, Twitter, Instagram, Github } from 'lucide-react';
 
 const GearGuardProfile = () => {
-=======
-import styled, { keyframes } from 'styled-components';
-import { FaUserCircle, FaEnvelope, FaUserTag, FaIdBadge, FaEdit, FaSave, FaTimes, FaPhone, FaVenusMars, FaCamera, FaSpinner, FaCalendar, FaMapMarkerAlt, FaBriefcase, FaGraduationCap, FaGlobe, FaLinkedin, FaTwitter, FaInstagram, FaGithub } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import MainNavigation from '../components/common/MainNavigation';
-
-// Real API functions
-const getProfile = async (email) => {
-    try {
-        console.log('🔍 Fetching profile for email:', email);
-    // Use relative API path so Vite dev server proxy handles CORS
-    const response = await fetch(`/api/profile/me?email=${encodeURIComponent(email)}`);
-        console.log('📡 Profile API response status:', response.status);
-        console.log('📡 Profile API response headers:', response.headers);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ API Error Response:', errorText);
-            throw new Error(`Failed to fetch profile: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log('📊 Profile data received:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Error fetching profile:', error);
-        throw error;
-    }
-};
-
-const updateProfile = async (email, formData) => {
-    try {
-        console.log('🔄 Updating profile for email:', email);
-        console.log('📝 Update data:', formData);
-    // Use relative API path so Vite dev server proxy handles CORS
-    const response = await fetch('/api/profile/me/update', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                email,
-                ...formData
-            })
-        });
-        
-        console.log('📡 Update API response status:', response.status);
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to update profile');
-        }
-        
-        const result = await response.json();
-        console.log('✅ Profile update successful:', result);
-        return result;
-    } catch (error) {
-        console.error('❌ Error updating profile:', error);
-        throw error;
-    }
-};
-
-
-const getUserEmail = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem('user'));
-    console.log('👤 User from localStorage:', user);
-    const email = user?.email;
-    console.log('📧 Extracted email:', email);
-    return email;
-  } catch (err) {
-    console.error('❌ Error parsing user from localStorage:', err);
-    return null;
-  }
-};
-
-const Profile = ({ user: propUser, onLogout }) => {
-  const [user, setUser] = useState(null);
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -90,64 +12,10 @@ const Profile = ({ user: propUser, onLogout }) => {
   const [avatarPreview, setAvatarPreview] = useState('');
   const avatarFileRef = useRef(null);
 
-<<<<<<< HEAD
   const getAuthHeader = () => {
     const token = localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
-=======
-  useEffect(() => {
-    if (propUser) {
-      setUser(propUser);
-      setForm({
-        firstName: propUser.firstName || '',
-        lastName: propUser.lastName || '',
-        email: propUser.email || '',
-        username: propUser.username || '',
-        phoneNumber: propUser.phoneNumber || '',
-        gender: propUser.gender || '',
-        location: propUser.location || '',
-        occupation: propUser.occupation || '',
-        education: propUser.education || '',
-        bio: propUser.bio || '',
-        website: propUser.website || '',
-        linkedin: propUser.linkedin || '',
-        twitter: propUser.twitter || '',
-        instagram: propUser.instagram || '',
-        github: propUser.github || ''
-      });
-      setAvatarPreview(propUser.avatar || '');
-      setLoading(false);
-    } else {
-      // If no user prop, try to get from localStorage or redirect
-      const storedUser = getUserFromLocalStorage();
-      if (storedUser) {
-        setUser(storedUser);
-        setForm({
-          firstName: storedUser.firstName || '',
-          lastName: storedUser.lastName || '',
-          email: storedUser.email || '',
-          username: storedUser.username || '',
-          phoneNumber: storedUser.phoneNumber || '',
-          gender: storedUser.gender || '',
-          location: storedUser.location || '',
-          occupation: storedUser.occupation || '',
-          education: storedUser.education || '',
-          bio: storedUser.bio || '',
-          website: storedUser.website || '',
-          linkedin: storedUser.linkedin || '',
-          twitter: storedUser.twitter || '',
-          instagram: storedUser.instagram || '',
-          github: storedUser.github || ''
-        });
-        setAvatarPreview(storedUser.avatar || '');
-        setLoading(false);
-      } else {
-        navigate('/signin');
-      }
-    }
-  }, [propUser, navigate]);
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
 
   const handleEdit = () => {
     setFormData({
@@ -272,7 +140,6 @@ const Profile = ({ user: propUser, onLogout }) => {
   }, []);
 
   return (
-<<<<<<< HEAD
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       {/* Success Toast */}
       {showSuccess && (
@@ -282,20 +149,6 @@ const Profile = ({ user: propUser, onLogout }) => {
           </div>
           <span className="font-semibold">Profile updated successfully!</span>
         </div>
-=======
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-      {/* Main Navigation */}
-      <MainNavigation user={user} onLogout={onLogout} />
-
-      <ProfileContainer>
-      {showSuccessToast && (
-        <Toast
-          message="Profile updated successfully!"
-          type="success"
-          onClose={() => setShowSuccessToast(false)}
-          duration={5000}
-        />
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
       )}
 
       <div className="max-w-6xl mx-auto">
@@ -361,7 +214,6 @@ const Profile = ({ user: propUser, onLogout }) => {
                 </div>
               </div>
 
-<<<<<<< HEAD
               {/* Action Buttons */}
               <div className="flex gap-3">
                 {!editMode ? (
@@ -682,32 +534,6 @@ const Profile = ({ user: propUser, onLogout }) => {
         .animate-spin-reverse { animation: spin-reverse 15s linear infinite; }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
       `}</style>
-=======
-                    <FormSection>
-                        <SectionTitle>Social Links</SectionTitle>
-                        <InputRow>
-                            <ModalInput name="website" value={form.website} onChange={handleChange} placeholder="Website URL" />
-                            <ModalInput name="linkedin" value={form.linkedin} onChange={handleChange} placeholder="LinkedIn Profile" />
-                        </InputRow>
-                        <InputRow>
-                            <ModalInput name="twitter" value={form.twitter} onChange={handleChange} placeholder="Twitter Handle" />
-                            <ModalInput name="instagram" value={form.instagram} onChange={handleChange} placeholder="Instagram Handle" />
-                        </InputRow>
-                        <ModalInput name="github" value={form.github} onChange={handleChange} placeholder="GitHub Profile" />
-                    </FormSection>
-                </ModalForm>
-                
-                <ModalActions>
-                    <SaveButton onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <SmallLoader/> : <><FaSave /> Save Changes</>}
-                    </SaveButton>
-                    <CancelButton onClick={handleCancel}><FaTimes /> Cancel</CancelButton>
-                </ModalActions>
-            </EditModal>
-        </ModalOverlay>
-      )}
-    </ProfileContainer>
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
     </div>
   );
 };

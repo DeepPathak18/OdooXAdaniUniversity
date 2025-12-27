@@ -1,13 +1,12 @@
-<<<<<<< HEAD
+
 import React, { useState, useEffect } from 'react';
 import { Wrench, Settings, Plus, Edit2, Trash2, Search, Users, Building2, UserPlus, X, Save } from 'lucide-react';
 import { getAllTeams, createTeam, updateTeam, deleteTeam } from '../api/team.api';
 import { toast } from 'react-toastify';
-=======
+
 import React, { useState } from 'react';
 import { Wrench, Plus, Edit2, Trash2, Search, Users, Building2, UserPlus, X, Save } from 'lucide-react';
 import MainNavigation from '../components/common/MainNavigation';
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
 
 export default function TeamsManagement({ user, onLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);

@@ -1,13 +1,11 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { Wrench, Settings, Plus, Edit2, Trash2, Search, Filter, Download, Upload, Save, X } from 'lucide-react';
 import { getAllWorkCenters, createWorkCenter, updateWorkCenter, deleteWorkCenter } from '../api/workcenter.api';
 import { toast } from 'react-toastify';
-=======
 import React, { useState } from 'react';
 import { Wrench, Plus, Edit2, Trash2, Search, Filter, Download, Upload, Save, X } from 'lucide-react';
 import MainNavigation from '../components/common/MainNavigation';
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
+
 
 export default function WorkCenterView({ user, onLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);
