@@ -36,6 +36,7 @@ const ForgotPassword = () => {
                 toast.error(data.message || 'Failed to send OTP.');
             }
         } catch (error) {
+            console.error('Error sending OTP:', error);
             toast.error('An error occurred. Please try again.');
         } finally {
             setIsLoading(false);
@@ -60,6 +61,7 @@ const ForgotPassword = () => {
                 toast.error(data.message || 'OTP verification failed.');
             }
         } catch (error) {
+            console.error('Error verifying OTP:', error);
             toast.error('An error occurred. Please try again.');
         } finally {
             setIsLoading(false);
@@ -83,6 +85,7 @@ const ForgotPassword = () => {
                 toast.error(data.message || 'Password change failed.');
             }
         } catch (error) {
+            console.error('Error changing password:', error);
             toast.error('An error occurred. Please try again.');
         } finally {
             setIsLoading(false);

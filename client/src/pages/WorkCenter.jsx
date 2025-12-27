@@ -38,6 +38,7 @@ export default function WorkCenterView({ user, onLogout }) {
       setWorkCenters(data);
       setError(null);
     } catch (err) {
+      console.error('Error fetching work centers:', err);
       setError('Failed to fetch work centers');
       toast.error('Failed to fetch work centers');
     } finally {

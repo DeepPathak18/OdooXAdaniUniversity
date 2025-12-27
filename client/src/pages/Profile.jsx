@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit, Save, X, Camera, Settings, Shield, Award, Globe } from 'lucide-react';
 
@@ -111,7 +111,7 @@ const GearGuardProfile = () => {
     }
   };
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/profile/me', { headers: { ...getAuthHeader() } });
@@ -135,17 +135,18 @@ const GearGuardProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [loadProfile]);
 
   const handleLogout = async () => {
     try {
       // optional: call server logout endpoint if you have one
       // await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeader() });
     } catch (err) {
+      console.error('Logout error:', err);
       // ignore errors during logout
     }
     localStorage.removeItem('token');

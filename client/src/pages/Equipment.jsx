@@ -28,6 +28,7 @@ export default function EquipmentListView({ user, onLogout }) {
       setEquipmentList(data);
       setError(null);
     } catch (err) {
+      console.error('Error fetching equipment:', err);
       setError('Failed to fetch equipment');
       toast.error('Failed to fetch equipment');
     } finally {

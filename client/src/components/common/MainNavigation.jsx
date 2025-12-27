@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wrench, Users, Calendar, FileText, Monitor, ChevronDown } from 'lucide-react';
+import { Wrench, Users, Calendar, FileText, Monitor, ChevronDown, LogOut } from 'lucide-react';
 
 const MainNavigation = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -51,6 +51,13 @@ const MainNavigation = ({ user, onLogout }) => {
                 title="View Profile"
               >
                 {user ? (user.name ? user.name.charAt(0).toUpperCase() : user.firstName?.charAt(0).toUpperCase() || 'U') : 'U'}
+              </button>
+              <button
+                onClick={onLogout}
+                className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white font-semibold hover:ring-2 hover:ring-red-400 transition-all cursor-pointer"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>

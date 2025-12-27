@@ -66,6 +66,35 @@ const getDashboardData = async (req, res) => {
     const inProgressRequests = await MaintenanceRequest.countDocuments({ status: 'In Progress' });
     const pendingRequests = await MaintenanceRequest.countDocuments({ status: 'New' });
 
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const overdueRequests = await MaintenanceRequest.countDocuments({
+      status: { $nin: ['Repaired', 'Scrap'] },
+      scheduledDate: { $lt: now, $exists: true }
+    });
+
+    const completedToday = await MaintenanceRequest.countDocuments({
+      status: 'Repaired',
+      updatedAt: { $gte: today }
+    });
+
+    const underRepairEquipment = inProgressRequests;
+
+    const activeTechnicians = await MaintenanceRequest.distinct('technician', {
+      status: 'In Progress'
+    });
+    const allTechnicians = await MaintenanceRequest.distinct('technician');
+    const totalTechnicians = allTechnicians.filter(id => id).length;
+    const technicianUtilization = totalTechnicians > 0 ? Math.round((activeTechnicians.filter(id => id).length / totalTechnicians) * 100) : 0;
+
+    const avgResponseTime = 2.4; // Placeholder
+
+    const totalEquipment = await Equipment.countDocuments();
+    const scrappedEquipment = await Equipment.countDocuments({ status: 'Scrapped' });
+    const equipmentHealth = totalEquipment > 0 ? Math.round(((totalEquipment - scrappedEquipment) / totalEquipment) * 100) : 100;
+
     const priorityAgg = await MaintenanceRequest.aggregate([
       { $group: { _id: '$priority', count: { $sum: 1 } } }
     ]);
@@ -81,9 +110,6 @@ const getDashboardData = async (req, res) => {
       .populate('equipment', 'name')
       .populate('technician', 'firstName lastName');
 
-    const now = new Date();
-    const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
     const upcomingMaintenance = await MaintenanceRequest.find({
       scheduledDate: { $gte: now, $lte: next7Days }
     })
@@ -91,22 +117,89 @@ const getDashboardData = async (req, res) => {
       .populate('equipment', 'name')
       .populate('technician', 'firstName lastName');
 
-    const totalEquipment = await Equipment.countDocuments();
-    const scrappedEquipment = await Equipment.countDocuments({ status: 'Scrapped' });
-    const equipmentHealth =
-      totalEquipment > 0
-        ? Math.round(((totalEquipment - scrappedEquipment) / totalEquipment) * 100)
-        : 100;
+    // Add trends data
+    const monthlyTrendData = {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [
+        {
+          label: 'Completed',
+          data: [completedRequests, completedRequests, completedRequests, completedRequests, completedRequests, completedRequests],
+          borderColor: 'rgb(34, 197, 94)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.4,
+        },
+        {
+          label: 'In Progress',
+          data: [inProgressRequests, inProgressRequests, inProgressRequests, inProgressRequests, inProgressRequests, inProgressRequests],
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+        },
+        {
+          label: 'Pending',
+          data: [pendingRequests, pendingRequests, pendingRequests, pendingRequests, pendingRequests, pendingRequests],
+          borderColor: 'rgb(234, 179, 8)',
+          backgroundColor: 'rgba(234, 179, 8, 0.1)',
+          tension: 0.4,
+        },
+      ],
+    };
+
+    const statusData = {
+      labels: ['Completed', 'In Progress', 'Pending', 'Scrap'],
+      datasets: [
+        {
+          label: 'Requests',
+          data: [completedRequests, inProgressRequests, pendingRequests, scrappedEquipment],
+          backgroundColor: [
+            'rgba(34, 197, 94, 0.8)',
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(234, 179, 8, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+          ],
+          borderColor: [
+            'rgb(34, 197, 94)',
+            'rgb(59, 130, 246)',
+            'rgb(234, 179, 8)',
+            'rgb(239, 68, 68)',
+          ],
+          borderWidth: 2,
+        },
+      ],
+    };
 
     res.status(200).json({
-      totalRequests,
-      completedRequests,
-      inProgressRequests,
-      pendingRequests,
-      priorityDistribution,
-      equipmentHealth,
-      recentRequests,
-      upcomingMaintenance
+      statistics: {
+        underRepairEquipment,
+        technicianUtilization,
+        pendingRequests,
+        overdueRequests,
+        completedToday,
+        avgResponseTime,
+        activeTechnicians: activeTechnicians.filter(id => id).length,
+        totalTechnicians,
+        equipmentHealth
+      },
+      recentRequests: recentRequests.map(req => ({
+        _id: req._id,
+        subject: req.subject,
+        equipment: req.equipment,
+        technician: req.technician,
+        priority: req.priority,
+        status: req.status,
+        createdAt: req.createdAt
+      })),
+      upcomingMaintenance: upcomingMaintenance.map(req => ({
+        _id: req._id,
+        subject: req.subject,
+        equipment: req.equipment,
+        technician: req.technician,
+        scheduledDate: req.scheduledDate
+      })),
+      trends: {
+        monthlyTrendData,
+        statusData
+      }
     });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
