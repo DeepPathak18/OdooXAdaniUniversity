@@ -132,7 +132,12 @@ const GearGuardAuth = () => {
         });
 
         if (!response.ok) {
-          const error = await response.json();
+          let error;
+          try {
+            error = await response.json();
+          } catch (e) {
+            error = { message: 'Sign in failed' };
+          }
           throw new Error(error.message || 'Sign in failed');
         }
 
@@ -508,41 +513,7 @@ const GearGuardAuth = () => {
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes float-particle {
-          0%, 100% { transform: translate(0, 0); opacity: 0.2; }
-          25% { transform: translate(10px, -20px); opacity: 0.4; }
-          50% { transform: translate(-10px, -40px); opacity: 0.6; }
-          75% { transform: translate(15px, -30px); opacity: 0.4; }
-        }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes spin-reverse {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-10px); }
-          75% { transform: translateX(10px); }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-float-particle { animation: float-particle 15s infinite ease-in-out; }
-        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
-        .animate-spin-reverse { animation: spin-reverse 15s linear infinite; }
-        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-        .animate-shake { animation: shake 0.5s ease-in-out; }
-        .animate-fade-in { animation: fade-in 0.3s ease-out; }
-      `}</style>
+      
     </div>
   );
 };
