@@ -9,7 +9,6 @@ export default function MaintenanceCalendar({ user, onLogout }) {
   const [maintenanceEvents, setMaintenanceEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [calendarView, setCalendarView] = useState('month');
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();

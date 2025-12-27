@@ -76,7 +76,7 @@ export default function TeamsManagement({ user, onLogout }) {
       setError(null);
 
     } catch (err) {
-
+      console.error('Error fetching teams:', err);
       setError('Failed to fetch teams');
 
       toast.error('Failed to fetch teams');
@@ -100,7 +100,7 @@ export default function TeamsManagement({ user, onLogout }) {
       setUsers(data);
 
     } catch (err) {
-
+      console.error('Error fetching users:', err);
       toast.error('Failed to fetch users');
 
     }

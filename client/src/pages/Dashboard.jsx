@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Wrench, Users, Calendar, FileText, Search, Plus, TrendingUp, Clock, CheckCircle, ChevronDown, Monitor, Loader, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Line, Pie } from 'react-chartjs-2';
 import MainNavigation from '../components/common/MainNavigation';
 
 export default function Dashboard({ user, onLogout }) {
@@ -279,7 +280,76 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* Upcoming Maintenance Section */}
+        {/* Charts Section */}
+        {dashboardData?.trends && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Monthly Trends Chart */}
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-lg font-semibold text-white">Maintenance Trends</h3>
+              </div>
+              <div className="h-64">
+                <Line
+                  data={dashboardData.trends.monthlyTrendData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        labels: {
+                          color: '#e2e8f0'
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        ticks: {
+                          color: '#94a3b8'
+                        },
+                        grid: {
+                          color: '#334155'
+                        }
+                      },
+                      y: {
+                        ticks: {
+                          color: '#94a3b8'
+                        },
+                        grid: {
+                          color: '#334155'
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Status Distribution Chart */}
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <FileText className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-lg font-semibold text-white">Request Status Distribution</h3>
+              </div>
+              <div className="h-64">
+                <Pie
+                  data={dashboardData.trends.statusData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        labels: {
+                          color: '#e2e8f0'
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
         {dashboardData?.upcomingMaintenance && dashboardData.upcomingMaintenance.length > 0 && (
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 mb-6">
             <div className="flex items-center space-x-2 mb-4">
@@ -348,7 +418,7 @@ export default function Dashboard({ user, onLogout }) {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded text-xs ${getStatusColor(item.status)}`}>
-                          {item.status === 'in-progress' ? 'In Progress' : item.status || 'Pending'}
+                          {item.status === 'In Progress' ? 'In Progress' : item.status || 'New'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">

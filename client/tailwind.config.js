@@ -1,9 +1,9 @@
 // tailwind.config.js
 
 // NEW: Import the default theme to extend it
-const defaultTheme = require('tailwindcss/defaultTheme');
+import defaultTheme from 'tailwindcss/defaultTheme';
 
-module.exports = {
+export default {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
     "./src/components/**/*.{js,jsx,ts,tsx}",

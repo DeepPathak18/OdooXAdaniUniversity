@@ -17,6 +17,7 @@ export default function Maintenance({ user }) {
         setMaintenanceData(data);
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching maintenance requests:', err);
         setError('Failed to fetch maintenance requests');
         setLoading(false);
       }
