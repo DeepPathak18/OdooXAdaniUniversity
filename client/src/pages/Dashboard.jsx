@@ -1,302 +1,130 @@
-<<<<<<< HEAD
-const MaintenanceRequest = require('../models/MaintenanceRequest');
-const User = require('../models/User');
-const Equipment = require('../models/Equipment');
-const MaintenanceTeam = require('../models/MaintenanceTeam');
-=======
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Wrench, Users, Calendar, FileText, Search, Plus, TrendingUp, Clock, CheckCircle, ChevronDown, Monitor, Loader, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Line, Pie } from 'react-chartjs-2';
 import MainNavigation from '../components/common/MainNavigation';
->>>>>>> ca2b29ddb15985bdf6c3f31234fa87d5eafb0d6a
 
-/* ======================================================
-   GET CALENDAR EVENTS
-====================================================== */
-const getCalendarEvents = async (req, res) => {
-  try {
-    const { month, year } = req.query;
+export default function Dashboard({ user, onLogout }) {
+  const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const intervalRef = useRef(null);
 
-    let filter = { scheduledDate: { $exists: true, $ne: null } };
+  // Fetch dashboard data from backend
+  const fetchDashboardData = useCallback(async (isInitial = false) => {
+    try {
+      if (isInitial) {
+        setLoading(true);
+      }
+      setError(null);
 
-    if (month && year) {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
-      filter.scheduledDate = { $gte: startDate, $lt: endDate };
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        if (isInitial) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Use relative path so Vite dev server proxy handles the backend URL
+      const response = await fetch('/api/analytics/dashboard-data', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Authentication failed. Please log in again.');
+          localStorage.removeItem('token');
+          navigate('/signin');
+          return;
+        }
+        throw new Error(`Failed to fetch dashboard data: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      if (isInitial) {
+        setLoading(false);
+      }
     }
+  }, [navigate]);
 
-    const events = await MaintenanceRequest.find(filter)
-      .populate('createdBy', 'firstName lastName')
-      .populate('equipment', 'name')
-      .populate('team', 'teamName')
-      .populate('technician', 'firstName lastName')
-      .sort({ scheduledDate: 1 });
+  // Fetch data on component mount and set up polling
+  useEffect(() => {
+    fetchDashboardData(true);
 
-    const formattedEvents = events.map(event => ({
-      id: event._id,
-      subject: event.subject,
-      date: event.scheduledDate,
-      day: event.scheduledDate.getDate(),
-      month: event.scheduledDate.getMonth(),
-      year: event.scheduledDate.getFullYear(),
-      time: event.scheduledDate.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }),
-      status: event.status || 'scheduled',
-      priority: event.priority,
-      category: event.category,
-      maintenanceType: event.maintenanceType,
-      equipment: event.equipment?.name || 'Unknown Equipment',
-      technician: event.technician
-        ? `${event.technician.firstName} ${event.technician.lastName}`
-        : 'Unassigned',
-      team: event.team?.teamName || 'Unknown Team',
-      durationHours: event.durationHours,
-      notes: event.notes
-    }));
+    // Set up polling every 5 seconds for dynamic updates
+    intervalRef.current = setInterval(() => {
+      fetchDashboardData(false);
+    }, 5000);
 
-    res.status(200).json(formattedEvents);
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
-
-/* ======================================================
-   DASHBOARD DATA
-====================================================== */
-const getDashboardData = async (req, res) => {
-  try {
-    const totalRequests = await MaintenanceRequest.countDocuments();
-    const completedRequests = await MaintenanceRequest.countDocuments({ status: 'Repaired' });
-    const inProgressRequests = await MaintenanceRequest.countDocuments({ status: 'In Progress' });
-    const pendingRequests = await MaintenanceRequest.countDocuments({ status: 'New' });
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    const overdueRequests = await MaintenanceRequest.countDocuments({
-      status: { $nin: ['Repaired', 'Scrap'] },
-      scheduledDate: { $lt: now, $exists: true }
-    });
-
-    const completedToday = await MaintenanceRequest.countDocuments({
-      status: 'Repaired',
-      updatedAt: { $gte: today }
-    });
-
-    const underRepairEquipment = inProgressRequests;
-
-    const activeTechnicians = await MaintenanceRequest.distinct('technician', {
-      status: 'In Progress'
-    });
-    const allTechnicians = await MaintenanceRequest.distinct('technician');
-    const totalTechnicians = allTechnicians.filter(id => id).length;
-    const technicianUtilization = totalTechnicians > 0 ? Math.round((activeTechnicians.filter(id => id).length / totalTechnicians) * 100) : 0;
-
-    const avgResponseTime = 2.4; // Placeholder
-
-    const totalEquipment = await Equipment.countDocuments();
-    const scrappedEquipment = await Equipment.countDocuments({ status: 'Scrapped' });
-    const equipmentHealth = totalEquipment > 0 ? Math.round(((totalEquipment - scrappedEquipment) / totalEquipment) * 100) : 100;
-
-    const priorityAgg = await MaintenanceRequest.aggregate([
-      { $group: { _id: '$priority', count: { $sum: 1 } } }
-    ]);
-
-    const priorityDistribution = { critical: 0, high: 0, medium: 0, low: 0 };
-    priorityAgg.forEach(p => {
-      if (p._id) priorityDistribution[p._id.toLowerCase()] = p.count;
-    });
-
-    const recentRequests = await MaintenanceRequest.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate('equipment', 'name')
-      .populate('technician', 'firstName lastName');
-
-    const upcomingMaintenance = await MaintenanceRequest.find({
-      scheduledDate: { $gte: now, $lte: next7Days }
-    })
-      .sort({ scheduledDate: 1 })
-      .populate('equipment', 'name')
-      .populate('technician', 'firstName lastName');
-
-    // Add trends data
-    const monthlyTrendData = {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [
-        {
-          label: 'Completed',
-          data: [completedRequests, completedRequests, completedRequests, completedRequests, completedRequests, completedRequests],
-          borderColor: 'rgb(34, 197, 94)',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          tension: 0.4,
-        },
-        {
-          label: 'In Progress',
-          data: [inProgressRequests, inProgressRequests, inProgressRequests, inProgressRequests, inProgressRequests, inProgressRequests],
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          tension: 0.4,
-        },
-        {
-          label: 'Pending',
-          data: [pendingRequests, pendingRequests, pendingRequests, pendingRequests, pendingRequests, pendingRequests],
-          borderColor: 'rgb(234, 179, 8)',
-          backgroundColor: 'rgba(234, 179, 8, 0.1)',
-          tension: 0.4,
-        },
-      ],
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
+  }, [fetchDashboardData]);
 
-    const statusData = {
-      labels: ['Completed', 'In Progress', 'Pending', 'Scrap'],
-      datasets: [
-        {
-          label: 'Requests',
-          data: [completedRequests, inProgressRequests, pendingRequests, scrappedEquipment],
-          backgroundColor: [
-            'rgba(34, 197, 94, 0.8)',
-            'rgba(59, 130, 246, 0.8)',
-            'rgba(234, 179, 8, 0.8)',
-            'rgba(239, 68, 68, 0.8)',
-          ],
-          borderColor: [
-            'rgb(34, 197, 94)',
-            'rgb(59, 130, 246)',
-            'rgb(234, 179, 8)',
-            'rgb(239, 68, 68)',
-          ],
-          borderWidth: 2,
-        },
-      ],
-    };
+  // Filter recent requests based on search term
+  const filteredRequests = dashboardData?.recentRequests?.filter(request =>
+    request.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.technician?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.technician?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
-    res.status(200).json({
-      statistics: {
-        underRepairEquipment,
-        technicianUtilization,
-        pendingRequests,
-        overdueRequests,
-        completedToday,
-        avgResponseTime,
-        activeTechnicians: activeTechnicians.filter(id => id).length,
-        totalTechnicians,
-        equipmentHealth
-      },
-      recentRequests: recentRequests.map(req => ({
-        _id: req._id,
-        subject: req.subject,
-        equipment: req.equipment,
-        technician: req.technician,
-        priority: req.priority,
-        status: req.status,
-        createdAt: req.createdAt
-      })),
-      upcomingMaintenance: upcomingMaintenance.map(req => ({
-        _id: req._id,
-        subject: req.subject,
-        equipment: req.equipment,
-        technician: req.technician,
-        scheduledDate: req.scheduledDate
-      })),
-      trends: {
-        monthlyTrendData,
-        statusData
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
+  // Get status color for maintenance requests
+  const getStatusColor = (status) => {
+    const s = (status || '').toString().toLowerCase();
+    if (s === 'repaired' || s === 'completed') return 'bg-green-500/20 text-green-300';
+    if (s === 'in progress' || s === 'in-progress' || s === 'in_progress') return 'bg-blue-500/20 text-blue-300';
+    if (s === 'new' || s === 'pending') return 'bg-yellow-500/20 text-yellow-300';
+    if (s === 'scrap' || s === 'scrapped') return 'bg-gray-600/20 text-gray-300';
+    return 'bg-gray-500/20 text-gray-300';
+  };
 
-/* ======================================================
-   MAINTENANCE TRENDS (MOCK DATA)
-====================================================== */
-const getMaintenanceTrends = async (req, res) => {
-  try {
-    res.status(200).json({
-      monthlyTrendData: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [
-          { label: 'Completed', data: [12, 15, 18, 14, 16, 20] },
-          { label: 'In Progress', data: [5, 7, 6, 8, 9, 7] },
-          { label: 'Pending', data: [3, 2, 4, 3, 5, 4] }
-        ]
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
-
-/* ======================================================
-   CREATE SAMPLE EVENTS
-====================================================== */
-const createSampleEvents = async (req, res) => {
-  try {
-    let user = await User.findOne();
-    if (!user) {
-      user = await User.create({
-        username: 'testuser',
-        firstName: 'Test',
-        lastName: 'User',
-        email: 'test@example.com',
-        password: 'password123'
-      });
+  // Get priority color
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'critical':
+        return 'bg-red-500/20 text-red-300';
+      case 'high':
+        return 'bg-orange-500/20 text-orange-300';
+      case 'medium':
+        return 'bg-yellow-500/20 text-yellow-300';
+      case 'low':
+        return 'bg-green-500/20 text-green-300';
+      default:
+        return 'bg-gray-500/20 text-gray-300';
     }
+  };
 
-    let equipment = await Equipment.findOne();
-    if (!equipment) {
-      equipment = await Equipment.create({
-        name: 'Sample Equipment',
-        category: 'General',
-        serialNumber: 'TEST-001'
-      });
-    }
-
-    let team = await MaintenanceTeam.findOne();
-    if (!team) {
-      team = await MaintenanceTeam.create({
-        teamName: 'Sample Team',
-        teamMembers: [user._id]
-      });
-    }
-
-    const events = await MaintenanceRequest.insertMany([
-      {
-        subject: 'HVAC Maintenance',
-        createdBy: user._id,
-        equipment: equipment._id,
-        team: team._id,
-        technician: user._id,
-        scheduledDate: new Date(),
-        priority: 'Medium',
-        status: 'In Progress'
-      }
-    ]);
-
-    res.status(201).json({ message: 'Sample events created', events });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
+        <MainNavigation user={user} onLogout={onLogout} />
+        <main className="px-6 py-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center space-x-3 text-cyan-400">
+              <Loader className="w-6 h-6 animate-spin" />
+              <span>Loading dashboard data...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
-};
 
-<<<<<<< HEAD
-/* ======================================================
-   EXPORTS
-====================================================== */
-module.exports = {
-  getCalendarEvents,
-  getDashboardData,
-  getMaintenanceTrends,
-  createSampleEvents
-};
-=======
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
@@ -613,4 +441,3 @@ module.exports = {
     </div>
   );
 }
->>>>>>> ca2b29ddb15985bdf6c3f31234fa87d5eafb0d6a
