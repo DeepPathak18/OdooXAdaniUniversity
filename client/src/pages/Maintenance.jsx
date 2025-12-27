@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Wrench, Settings, ChevronDown, Calendar, Clock, AlertTriangle, FileText, Save, Send, X } from 'lucide-react';
 
 export default function MaintenanceRequestForm({ user, onLogout }) {
+  const navigate = useNavigate();
   const [maintenanceType, setMaintenanceType] = useState('Corrective');
   const [activeTab, setActiveTab] = useState('Notes');
   const [priority, setPriority] = useState(2);
@@ -123,10 +125,20 @@ export default function MaintenanceRequestForm({ user, onLogout }) {
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">Maintenance For</label>
                   <div className="relative">
-                    <select className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white appearance-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all">
-                      <option>Equipment</option>
-                      <option>Facility</option>
-                      <option>Vehicle</option>
+                    <select 
+                      onChange={(e) => {
+                        if (e.target.value === 'working') {
+                          navigate('/workcenter');
+                        }
+                      }}
+                      defaultValue=""
+                      className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white appearance-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                    >
+                      <option value="">Select Type</option>
+                      <option value="equipment">Equipment</option>
+                      <option value="facility">Facility</option>
+                      <option value="vehicle">Vehicle</option>
+                      <option value="working">Work Center</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                   </div>
@@ -136,7 +148,15 @@ export default function MaintenanceRequestForm({ user, onLogout }) {
               {/* Equipment Details */}
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Equipment</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-400">Equipment</label>
+                    <button
+                      onClick={() => navigate('/equipment')}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                    >
+                      Manage Equipment →
+                    </button>
+                  </div>
                   <div className="relative">
                     <input
                       type="text"
@@ -207,7 +227,15 @@ export default function MaintenanceRequestForm({ user, onLogout }) {
               {/* Team & Technician */}
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Team</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-400">Team</label>
+                    <button
+                      onClick={() => navigate('/teams')}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                    >
+                      Manage Teams →
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value="Internal Maintenance"

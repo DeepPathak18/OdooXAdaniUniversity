@@ -96,13 +96,10 @@ const SignIn = () => {
 
   const handleToggleForm = (e) => {
     e.preventDefault();
-    if (isAnimating) return;
-
-    setIsAnimating(true);
-    setTimeout(() => {
-      setIsSignUp(prev => !prev);
-      setIsAnimating(false);
-    }, 300); // Duration of the animation
+    // Navigate directly to signup page instead of toggling
+    if (!isSignUp) {
+      navigate('/signup');
+    }
   };
 
   const handleFormSubmit = async (e) => {
@@ -266,8 +263,8 @@ const SignIn = () => {
               <p>Explore infinite possibilities</p>
             </LogoSection>
             <NavButtons>
-              <NavBtn href="#">Sign Up</NavBtn>
-              <NavBtn href="#">Join Us</NavBtn>
+              <NavBtn onClick={() => navigate('/signup')} style={{ cursor: 'pointer' }}>Sign Up</NavBtn>
+              <NavBtn onClick={() => window.location.href = '/'} style={{ cursor: 'pointer' }}>Back Home</NavBtn>
             </NavButtons>
           </div>
 
@@ -403,8 +400,11 @@ const SignIn = () => {
             </GithubBtn>
 
             <SignupLink>
-              {isSignUp ? 'Already have an account? ' : 'Dont have an account? '}
-              <a href="#" onClick={handleToggleForm}>
+              {isSignUp ? 'Already have an account? ' : 'Don\'t have an account? '}
+              <a href="#" onClick={(e) => {
+                e.preventDefault();
+                navigate('/signup');
+              }}>
                 {isSignUp ? 'Sign in' : 'Sign up'}
               </a>
             </SignupLink>

@@ -1,0 +1,412 @@
+import React, { useState } from 'react';
+import { Wrench, Settings, Plus, Edit2, Trash2, Search, Users, Building2, UserPlus, X, Save } from 'lucide-react';
+
+export default function TeamsManagement({ user, onLogout }) {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTeamId, setEditingTeamId] = useState(null);
+  const [teams, setTeams] = useState([
+    {
+      id: 1,
+      teamName: 'Internal Maintenance',
+      teamMembers: ['Anas Makari'],
+      company: 'My Company (San Francisco)'
+    },
+    {
+      id: 2,
+      teamName: 'Metrology',
+      teamMembers: ['Marc Demo'],
+      company: 'My Company (San Francisco)'
+    },
+    {
+      id: 3,
+      teamName: 'Subcontractor',
+      teamMembers: ['Maggie Davidson'],
+      company: 'My Company (San Francisco)'
+    }
+  ]);
+
+  const [newTeam, setNewTeam] = useState({
+    teamName: '',
+    teamMembers: [],
+    company: 'My Company (San Francisco)'
+  });
+
+  const [newMemberInput, setNewMemberInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleAddTeam = () => {
+    // Create new team
+    if (!isEditing) {
+      if (newTeam.teamName && newTeam.teamMembers.length > 0) {
+        setTeams([...teams, { ...newTeam, id: teams.length + 1 }]);
+        resetNewTeam();
+      }
+      return;
+    }
+
+    // Save edited team
+    if (isEditing && editingTeamId != null) {
+      setTeams(teams.map(t => (t.id === editingTeamId ? { ...t, ...newTeam, id: editingTeamId } : t)));
+      resetNewTeam();
+    }
+  };
+
+  const resetNewTeam = () => {
+    setNewTeam({
+      teamName: '',
+      teamMembers: [],
+      company: 'My Company (San Francisco)'
+    });
+    setNewMemberInput('');
+    setIsEditing(false);
+    setEditingTeamId(null);
+    setShowAddModal(false);
+  };
+
+  const handleAddMember = () => {
+    if (newMemberInput.trim()) {
+      setNewTeam({
+        ...newTeam,
+        teamMembers: [...newTeam.teamMembers, newMemberInput.trim()]
+      });
+      setNewMemberInput('');
+    }
+  };
+
+  const handleRemoveMember = (index) => {
+    setNewTeam({
+      ...newTeam,
+      teamMembers: newTeam.teamMembers.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleDeleteTeam = (id) => {
+    const team = teams.find(t => t.id === id);
+    if (!team) return;
+    if (window.confirm(`Delete team "${team.teamName}"? This cannot be undone.`)) {
+      setTeams(teams.filter(team => team.id !== id));
+    }
+  };
+
+  const openEditModal = (team) => {
+    setNewTeam({
+      teamName: team.teamName || '',
+      teamMembers: team.teamMembers ? [...team.teamMembers] : [],
+      company: team.company || 'My Company (San Francisco)'
+    });
+    setEditingTeamId(team.id);
+    setIsEditing(true);
+    setShowAddModal(true);
+  };
+
+  const filteredTeams = teams.filter(team =>
+    team.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    team.teamMembers.some(member => member.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    team.company.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
+      {/* Header */}
+      <header className="bg-slate-900/50 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-lg">
+                <Wrench className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  GearGuard
+                </h1>
+                <p className="text-sm text-gray-400">Teams Management</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
+                <Settings className="w-5 h-5" />
+              </button>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold">
+                {user?.name?.charAt(0) || 'MA'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="px-6 py-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between mb-6">
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30"
+            >
+              <Plus className="w-5 h-5" />
+              <span>New</span>
+            </button>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search teams..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all w-64"
+              />
+            </div>
+          </div>
+
+          {/* Teams Title */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-white flex items-center space-x-2">
+              <Users className="w-6 h-6 text-cyan-400" />
+              <span>Teams</span>
+            </h2>
+          </div>
+
+          {/* Teams Table */}
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-slate-900/50 border-b border-slate-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Team Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Team Members
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Company
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {filteredTeams.map((team) => (
+                  <tr key={team.id} className="hover:bg-slate-700/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-white font-medium">{team.teamName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        {team.teamMembers.map((member, index) => (
+                          <span 
+                            key={index}
+                            className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm flex items-center space-x-2"
+                          >
+                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                              {member.charAt(0).toUpperCase()}
+                            </div>
+                            <span>{member}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2 text-gray-300">
+                        <Building2 className="w-4 h-4 text-cyan-400" />
+                        <span>{team.company}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <button onClick={() => openEditModal(team)} className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-all">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteTeam(team.id)}
+                          className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Empty State */}
+            {filteredTeams.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 text-lg">No teams found</p>
+                <p className="text-gray-500 text-sm mt-2">Create your first team to get started</p>
+              </div>
+            )}
+          </div>
+
+          {/* Statistics */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm mb-1">Total Teams</p>
+                  <p className="text-2xl font-bold text-white">{teams.length}</p>
+                </div>
+                <Users className="w-8 h-8 text-cyan-500" />
+              </div>
+            </div>
+
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm mb-1">Total Members</p>
+                  <p className="text-2xl font-bold text-white">
+                    {teams.reduce((acc, team) => acc + team.teamMembers.length, 0)}
+                  </p>
+                </div>
+                <UserPlus className="w-8 h-8 text-blue-500" />
+              </div>
+            </div>
+
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm mb-1">Avg Team Size</p>
+                  <p className="text-2xl font-bold text-white">
+                    {teams.length > 0 
+                      ? (teams.reduce((acc, team) => acc + team.teamMembers.length, 0) / teams.length).toFixed(1)
+                      : '0'
+                    }
+                  </p>
+                </div>
+                <Building2 className="w-8 h-8 text-purple-500" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Add Team Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-slate-900/90 backdrop-blur-sm border-b border-slate-700 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
+                <Users className="w-6 h-6 text-cyan-400" />
+                <span>{isEditing ? 'Edit Team' : 'Create New Team'}</span>
+              </h3>
+              <button 
+                onClick={() => resetNewTeam()}
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Team Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Team Name *</label>
+                <input
+                  type="text"
+                  value={newTeam.teamName}
+                  onChange={(e) => setNewTeam({...newTeam, teamName: e.target.value})}
+                  placeholder="e.g., Internal Maintenance"
+                  className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                />
+              </div>
+
+              {/* Team Members */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Team Members *</label>
+                
+                {/* Add Member Input */}
+                <div className="flex space-x-2 mb-3">
+                  <input
+                    type="text"
+                    value={newMemberInput}
+                    onChange={(e) => setNewMemberInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddMember()}
+                    placeholder="Enter member name"
+                    className="flex-1 px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                  />
+                  <button 
+                    onClick={handleAddMember}
+                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-all flex items-center space-x-2"
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    <span>Add</span>
+                  </button>
+                </div>
+
+                {/* Member List */}
+                {newTeam.teamMembers.length > 0 && (
+                  <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {newTeam.teamMembers.map((member, index) => (
+                        <div 
+                          key={index}
+                          className="px-3 py-2 bg-blue-500/20 text-blue-300 rounded-lg text-sm flex items-center space-x-2"
+                        >
+                          <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                            {member.charAt(0).toUpperCase()}
+                          </div>
+                          <span>{member}</span>
+                          <button 
+                            onClick={() => handleRemoveMember(index)}
+                            className="ml-2 hover:bg-red-500/20 p-1 rounded transition-all"
+                          >
+                            <X className="w-4 h-4 text-red-400" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {newTeam.teamMembers.length === 0 && (
+                  <p className="text-gray-500 text-sm">No members added yet. Add at least one member.</p>
+                )}
+              </div>
+
+              {/* Company */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Company</label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={newTeam.company}
+                    onChange={(e) => setNewTeam({...newTeam, company: e.target.value})}
+                    className="w-full pl-11 pr-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+                <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-700">
+                <button 
+                  onClick={() => resetNewTeam()}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAddTeam}
+                  disabled={!newTeam.teamName || newTeam.teamMembers.length === 0}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 flex items-center space-x-2"
+                >
+                  <Save className="w-5 h-5" />
+                  <span>{isEditing ? 'Save Changes' : 'Create Team'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

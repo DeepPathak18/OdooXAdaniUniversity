@@ -10,6 +10,9 @@ import SignUp from './pages/SignUp';
 import SignIn from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Maintenance from './pages/Maintenance';
+import WorkCenter from './pages/WorkCenter';
+import Teams from './pages/Teams';
+import Equipment from './pages/Equipment';
 import Profile from './pages/Profile';
 import ActivityPage from './pages/Activity';
 import ForgotPassword from './pages/ForgotPassword';
@@ -99,6 +102,18 @@ function App() {
         <Route
           path="/maintenance"
           element={<PrivateRoute><Maintenance user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/workcenter"
+          element={<PrivateRoute><WorkCenter user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/teams"
+          element={<PrivateRoute><Teams user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/equipment"
+          element={<PrivateRoute><Equipment user={user} onLogout={handleLogout} /></PrivateRoute>}
         />
         <Route
           path="/profile"
