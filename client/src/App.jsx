@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, Navigate, useNavigate } from 'react-router-dom';
-import ChatPage from "./components/ChatPage";
+import ChatPage from "./pages/Chat";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Import all your page components
-import LandingPage from './components/LandingPage';
-import SignUp from './components/SignUp';
-import SignIn from './components/SignIn';
-import Dashboard from './components/Dashboard';
-import Profile from './components/Profile.jsx';
-import ActivityPage from './components/ActivityPage.jsx';
-import ForgotPassword from './components/ForgotPassword.jsx';
-import AuthCallback from './components/AuthCallback.jsx';
-import VerifyOtp from './components/VerifyOtp.jsx';
-import Header from './components/Header.jsx';
+import LandingPage from './pages/Landing';
+import SignUp from './pages/SignUp';
+import SignIn from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Maintenance from './pages/Maintenance';
+import Profile from './pages/Profile';
+import ActivityPage from './pages/Activity';
+import ForgotPassword from './pages/ForgotPassword';
+import AuthCallback from './pages/AuthCallback';
+import VerifyOtp from './pages/VerifyOtp';
+import Header from './components/common/Navbar';
 
 // Your PrivateRoute component remains the same
 const PrivateRoute = ({ children }) => {
@@ -94,6 +95,10 @@ function App() {
         <Route
           path="/dashboard"
           element={<PrivateRoute><Dashboard user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/maintenance"
+          element={<PrivateRoute><Maintenance user={user} onLogout={handleLogout} /></PrivateRoute>}
         />
         <Route
           path="/profile"

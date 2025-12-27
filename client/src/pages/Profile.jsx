@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FaUserCircle, FaEnvelope, FaUserTag, FaIdBadge, FaEdit, FaSave, FaTimes, FaPhone, FaVenusMars, FaCamera, FaSpinner, FaCalendar, FaMapMarkerAlt, FaBriefcase, FaGraduationCap, FaGlobe, FaLinkedin, FaTwitter, FaInstagram, FaGithub } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import Toast from './Toast';
 
 // Real API functions
 const getProfile = async (email) => {
