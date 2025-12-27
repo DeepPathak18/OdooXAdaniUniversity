@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Wrench, Users, Calendar, FileText, Search, Plus, TrendingUp, Clock, CheckCircle, ChevronDown, Monitor, Loader, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Wrench, Users, Calendar, FileText, Search, Plus, TrendingUp, Clock, CheckCircle, ChevronDown, Monitor, Loader, AlertTriangle, RefreshCw } from 'lucide-react';
 import MainNavigation from '../components/common/MainNavigation';
 
 export default function Dashboard({ user, onLogout }) {
@@ -9,18 +9,23 @@ export default function Dashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [refreshing, setRefreshing] = useState(false);
+  const intervalRef = useRef(null);
 
   // Fetch dashboard data from backend
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setLoading(true);
+      }
       setError(null);
 
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Authentication required. Please log in again.');
-        setLoading(false);
+        if (isInitial) {
+          setLoading(false);
+        }
         return;
       }
 
@@ -47,13 +52,26 @@ export default function Dashboard({ user, onLogout }) {
       console.error('Error fetching dashboard data:', err);
       setError(err.message || 'Failed to load dashboard data');
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   }, [navigate]);
 
-  // Fetch data on component mount
+  // Fetch data on component mount and set up polling
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
+
+    // Set up polling every 5 seconds for dynamic updates
+    intervalRef.current = setInterval(() => {
+      fetchDashboardData(false);
+    }, 5000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [fetchDashboardData]);
 
   // Filter recent requests based on search term
@@ -139,13 +157,27 @@ export default function Dashboard({ user, onLogout }) {
       <main className="px-6 py-6">
         {/* Action Bar */}
         <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigate('/maintenance/new')}
-            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 cursor-pointer"
-          >
-            <Plus className="w-5 h-5" />
-            <span>New Request</span>
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/maintenance/new')}
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30 cursor-pointer"
+            >
+              <Plus className="w-5 h-5" />
+              <span>New Request</span>
+            </button>
+            <button
+              onClick={async () => {
+                setRefreshing(true);
+                await fetchDashboardData(false);
+                setRefreshing(false);
+              }}
+              disabled={refreshing}
+              className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-500 px-4 py-2 rounded-lg font-medium transition-all cursor-pointer"
+            >
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          </div>
 
           <div className="relative flex-1 max-w-md ml-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
