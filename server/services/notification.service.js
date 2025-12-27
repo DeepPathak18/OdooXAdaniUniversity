@@ -78,6 +78,19 @@ const sendSMSNotification = async (to, message) => {
 ========================= */
 const sendPushNotification = (io, userId, notification) => {
   try {
+    if (!io) {
+      console.log(`⚠️ Socket.IO instance not provided — skipping push for user ${userId}`);
+      return false;
+    }
+    if (!userId) {
+      console.log('⚠️ No userId provided for push notification — skipping');
+      return false;
+    }
+    if (typeof io.to !== 'function') {
+      console.log('⚠️ Provided io object does not support `to()` — skipping push');
+      return false;
+    }
+
     io.to(`user_${userId}`).emit('notification', notification);
     console.log(`✅ Push notification sent to user ${userId}`);
     return true;

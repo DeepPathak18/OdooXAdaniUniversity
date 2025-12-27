@@ -13,6 +13,7 @@ const createRequest = async (req, res) => {
       maintenanceType,
       team,
       technician,
+      requestDate,
       scheduledDate,
       durationHours,
       priority,
@@ -25,6 +26,7 @@ const createRequest = async (req, res) => {
     const newRequest = new MaintenanceRequest({
       subject,
       createdBy: req.user.id,
+      requestDate: requestDate || undefined,
       equipment,
       category,
       maintenanceType,

@@ -158,7 +158,8 @@ export default function Reporting({ user, onLogout }) {
       setError(null);
       try {
         const dashboardResponse = await fetchDashboardData();
-        setReportData(dashboardResponse);
+        // Merge with defaults so missing fields don't break the UI
+        setReportData(prev => ({ ...prev, ...dashboardResponse }));
 
         const trendsResponse = await fetchMaintenanceTrends(dateRange, categoryFilter);
         if (trendsResponse.monthlyTrendData) setMonthlyTrendData(trendsResponse.monthlyTrendData);
@@ -427,19 +428,19 @@ export default function Reporting({ user, onLogout }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">Critical</span>
-                <span className="text-red-400 font-semibold">{reportData.priorityDistribution.critical} ({((reportData.priorityDistribution.critical / reportData.totalRequests) * 100).toFixed(0)}%)</span>
+                <span className="text-red-400 font-semibold">{reportData.priorityDistribution.critical} ({(reportData.totalRequests ? ((reportData.priorityDistribution.critical / reportData.totalRequests) * 100).toFixed(0) : 0)}%)</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">High</span>
-                <span className="text-orange-400 font-semibold">{reportData.priorityDistribution.high} ({((reportData.priorityDistribution.high / reportData.totalRequests) * 100).toFixed(0)}%)</span>
+                <span className="text-orange-400 font-semibold">{reportData.priorityDistribution.high} ({(reportData.totalRequests ? ((reportData.priorityDistribution.high / reportData.totalRequests) * 100).toFixed(0) : 0)}%)</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">Medium</span>
-                <span className="text-yellow-400 font-semibold">{reportData.priorityDistribution.medium} ({((reportData.priorityDistribution.medium / reportData.totalRequests) * 100).toFixed(0)}%)</span>
+                <span className="text-yellow-400 font-semibold">{reportData.priorityDistribution.medium} ({(reportData.totalRequests ? ((reportData.priorityDistribution.medium / reportData.totalRequests) * 100).toFixed(0) : 0)}%)</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">Low</span>
-                <span className="text-green-400 font-semibold">{reportData.priorityDistribution.low} ({((reportData.priorityDistribution.low / reportData.totalRequests) * 100).toFixed(0)}%)</span>
+                <span className="text-green-400 font-semibold">{reportData.priorityDistribution.low} ({(reportData.totalRequests ? ((reportData.priorityDistribution.low / reportData.totalRequests) * 100).toFixed(0) : 0)}%)</span>
               </div>
             </div>
           </div>
