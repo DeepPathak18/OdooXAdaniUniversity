@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth.middleware');
 const profileController = require('../controllers/profile.controller');
 
 router.put('/avatar', protect, profileController.updateAvatar);

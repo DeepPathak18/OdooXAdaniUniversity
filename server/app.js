@@ -48,6 +48,9 @@ mongoose.connection.on('disconnected', () => {
 // Mount the auth routes
 app.use('/api/auth', require('./routes/auth.routes.js'));
 app.use('/api/profile', require('./routes/profile.routes.js'));
+app.use('/api/equipment', require('./routes/equipment.routes.js'));
+app.use('/api/teams', require('./routes/team.routes.js'));
+app.use('/api/requests', require('./routes/request.routes.js'));
 
 
 const PORT = process.env.PORT || 5000;

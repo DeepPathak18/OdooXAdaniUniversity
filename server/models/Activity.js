@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const ActivitySchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'DETAIL',
+        ref: 'User',
         required: true,
     },
     activityType: {

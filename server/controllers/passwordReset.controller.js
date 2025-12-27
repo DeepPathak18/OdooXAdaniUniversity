@@ -1,16 +1,10 @@
-const express = require('express');
-const router = express.Router();
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
-const crypto = require('crypto');
 require('dotenv').config();
 
 // Nodemailer transporter setup
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.error("FATAL ERROR: EMAIL_USER and EMAIL_PASS environment variables are not set.");
-    // In a real app, you might want to prevent the app from starting
-    // or handle this more gracefully. For this context, we'll allow it to run
-    // but log the error. The routes will fail if called.
 }
 
 const transporter = nodemailer.createTransport({
@@ -21,10 +15,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// @route   POST api/password-reset/forgot-password
-// @desc    Send password reset email
-// @access  Public
-router.post('/forgot-password', async (req, res) => {
+const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ email });
@@ -44,9 +35,9 @@ router.post('/forgot-password', async (req, res) => {
             to: user.email,
             from: process.env.EMAIL_USER,
             subject: 'Password Reset Code',
-            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
-                   Your password reset code is: ${resetCode}\n\n
-                   This code will expire in one hour.\n\n
+            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n\
+                   Your password reset code is: ${resetCode}\n\n\
+                   This code will expire in one hour.\n\n\
                    If you did not request this, please ignore this email and your password will remain unchanged.\n`,
         };
 
@@ -62,12 +53,9 @@ router.post('/forgot-password', async (req, res) => {
         console.error('Forgot Password Error:', error);
         res.status(500).send('Error in sending email');
     }
-});
+};
 
-// @route   POST api/auth/verify-code
-// @desc    Verify reset code
-// @access  Public
-router.post('/verify-code', async (req, res) => {
+const verifyCode = async (req, res) => {
     try {
         const { email, code } = req.body;
         const user = await User.findOne({
@@ -86,12 +74,9 @@ router.post('/verify-code', async (req, res) => {
         console.error('Verify Code Error:', error);
         res.status(500).send('Server error');
     }
-});
+};
 
-// @route   POST api/password-reset/reset-password
-// @desc    Reset password after code verification
-// @access  Public
-router.post('/reset-password', async (req, res) => {
+const resetPassword = async (req, res) => {
     try {
         const { email, code, password } = req.body;
         const user = await User.findOne({
@@ -116,7 +101,10 @@ router.post('/reset-password', async (req, res) => {
         console.error('Reset Password Error:', error);
         res.status(500).send('Server error');
     }
-});
+};
 
-
-module.exports = router;
+module.exports = {
+    forgotPassword,
+    verifyCode,
+    resetPassword,
+};

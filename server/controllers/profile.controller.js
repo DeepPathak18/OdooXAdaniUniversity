@@ -1,6 +1,6 @@
 const multer = require('multer');
 const path = require('path');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth.middleware');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 

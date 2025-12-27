@@ -21,8 +21,7 @@ const otpSchema = new mongoose.Schema({
     }
 });
 
-// Create a TTL index on createdAt field for automatic document expiration
-otpSchema.index({ "createdAt": 1 }, { expireAfterSeconds: 600 });
+
 
 // Hash OTP before saving
 otpSchema.pre('save', async function (next) {

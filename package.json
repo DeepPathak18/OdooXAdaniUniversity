@@ -24,7 +24,7 @@
   "version": "1.0.0",
   "main": "playground-1.mongodb.js",
   "scripts": {
-    "dev": "npm run dev"
+    "dev": "nodemon server/server.js"
   },
   "repository": {
     "type": "git",
