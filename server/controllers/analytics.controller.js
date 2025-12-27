@@ -171,59 +171,137 @@ const createSampleEvents = async (req, res) => {
 
 // Exported at end of file after all functions are declared
 
-const getDashboardData = (req, res) => {
-    try {
-        // In a real application, you would fetch this data from a database
-        // based on user's organization, date range, etc.
-        const dashboardData = {
-            totalRequests: 156,
-            completedRequests: 128,
-            inProgressRequests: 18,
-            pendingRequests: 10,
-            averageResponseTime: 2.4, // hours
-            averageCompletionTime: 5.2, // hours
-            criticalIssues: 5,
-            equipmentHealth: 87, // percentage
-            // Additional stats for breakdown sections
-            responseTimeBreakdown: {
-                average: 2.4,
-                fastest: 0.5,
-                 slowest: 8.2,
-            },
-            completionStats: {
-                average: 5.2,
-                completionRate: 82,
-                onTimeCompletion: 92,
-            },
-            priorityDistribution: {
-                critical: 5,
-                high: 32,
-                medium: 89,
-                low: 30,
-            },
-            recentActivity: {
-                thisWeek: {
-                    completed: 45,
-                    inProgress: 12,
-                    vsLastWeek: '+15%',
-                },
-                thisMonth: {
-                    completed: 156,
-                    inProgress: 18,
-                    vsLastMonth: '+8%',
-                },
-                equipmentStatus: {
-                    healthy: 87,
-                    criticalIssues: 5,
-                    vsLastMonth: '+2%',
-                },
-            },
-        };
-        res.status(200).json(dashboardData);
-    } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        res.status(500).json({ message: 'Server error fetching dashboard data' });
+const getDashboardData = async (req, res) => {
+  try {
+    // Basic counts
+    const totalRequests = await MaintenanceRequest.countDocuments();
+    const completedRequests = await MaintenanceRequest.countDocuments({ status: 'Repaired' });
+    const inProgressRequests = await MaintenanceRequest.countDocuments({ status: 'In Progress' });
+    const pendingRequests = await MaintenanceRequest.countDocuments({ status: 'New' });
+
+    // Average completion time (hours) for repaired requests
+    const completionAgg = await MaintenanceRequest.aggregate([
+      { $match: { status: 'Repaired', requestDate: { $exists: true }, updatedAt: { $exists: true } } },
+      { $project: { diffHours: { $divide: [{ $subtract: ['$updatedAt', '$requestDate'] }, 1000 * 60 * 60] } } },
+      { $group: { _id: null, avgCompletionHours: { $avg: '$diffHours' }, minHours: { $min: '$diffHours' }, maxHours: { $max: '$diffHours' } } },
+    ]);
+
+    const averageCompletionTime = completionAgg[0] ? Number(completionAgg[0].avgCompletionHours.toFixed(2)) : 0;
+    const responseTimeBreakdown = completionAgg[0]
+      ? {
+          average: Number(completionAgg[0].avgCompletionHours.toFixed(2)),
+          fastest: Number(completionAgg[0].minHours.toFixed(2)),
+          slowest: Number(completionAgg[0].maxHours.toFixed(2)),
+        }
+      : { average: 0, fastest: 0, slowest: 0 };
+
+    // For response time, use scheduledDate - requestDate where available
+    const responseAgg = await MaintenanceRequest.aggregate([
+      { $match: { scheduledDate: { $exists: true, $ne: null }, requestDate: { $exists: true } } },
+      { $project: { diffHours: { $divide: [{ $subtract: ['$scheduledDate', '$requestDate'] }, 1000 * 60 * 60] } } },
+      { $group: { _id: null, avgResponseHours: { $avg: '$diffHours' } } },
+    ]);
+
+    const averageResponseTime = responseAgg[0] ? Number(responseAgg[0].avgResponseHours.toFixed(2)) : averageCompletionTime;
+
+    // Priority distribution
+    const priorityAgg = await MaintenanceRequest.aggregate([
+      { $group: { _id: '$priority', count: { $sum: 1 } } },
+    ]);
+    const priorityDistribution = { critical: 0, high: 0, medium: 0, low: 0 };
+    priorityAgg.forEach(p => {
+      if (!p._id) return;
+      const key = p._id.toLowerCase();
+      if (key === 'critical') priorityDistribution.critical = p.count;
+      else if (key === 'high') priorityDistribution.high = p.count;
+      else if (key === 'medium') priorityDistribution.medium = p.count;
+      else if (key === 'low') priorityDistribution.low = p.count;
+    });
+
+    // Recent activity: this week and this month (based on updatedAt)
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const thisWeekCompleted = await MaintenanceRequest.countDocuments({ status: 'Repaired', updatedAt: { $gte: weekAgo } });
+    const thisWeekInProgress = await MaintenanceRequest.countDocuments({ status: 'In Progress', updatedAt: { $gte: weekAgo } });
+
+    const thisMonthCompleted = await MaintenanceRequest.countDocuments({ status: 'Repaired', updatedAt: { $gte: monthAgo } });
+    const thisMonthInProgress = await MaintenanceRequest.countDocuments({ status: 'In Progress', updatedAt: { $gte: monthAgo } });
+
+    // Equipment health: percentage of equipment not scrapped
+    const Equipment = require('../models/Equipment');
+    const totalEquipment = await Equipment.countDocuments();
+    const scrappedEquipment = await Equipment.countDocuments({ status: 'Scrapped' });
+    const equipmentHealth = totalEquipment > 0 ? Math.round(((totalEquipment - scrappedEquipment) / totalEquipment) * 100) : 100;
+
+    // Recent requests list
+    const recentRequests = await MaintenanceRequest.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('equipment', 'name')
+      .populate('technician', 'firstName lastName')
+      .populate('team', 'teamName')
+      .populate('createdBy', 'firstName lastName');
+
+    // Upcoming maintenance (next 7 days)
+    const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const upcomingMaintenance = await MaintenanceRequest.find({ scheduledDate: { $gte: now, $lte: inSevenDays } })
+      .sort({ scheduledDate: 1 })
+      .limit(10)
+      .populate('equipment', 'name')
+      .populate('technician', 'firstName lastName')
+      .populate('team', 'teamName');
+
+    // Top active technicians by assigned open requests
+    const techAgg = await MaintenanceRequest.aggregate([
+      { $match: { technician: { $exists: true, $ne: null } } },
+      { $group: { _id: '$technician', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]);
+    const User = require('../models/User');
+    const activeTechnicians = [];
+    for (const t of techAgg) {
+      try {
+        const user = await User.findById(t._id).select('firstName lastName email');
+        if (user) activeTechnicians.push({ technician: `${user.firstName} ${user.lastName}`, count: t.count });
+      } catch (e) {
+        // ignore
+      }
     }
+
+    const dashboardData = {
+      totalRequests,
+      completedRequests,
+      inProgressRequests,
+      pendingRequests,
+      averageResponseTime,
+      averageCompletionTime,
+      criticalIssues: priorityDistribution.critical || 0,
+      equipmentHealth,
+      responseTimeBreakdown,
+      completionStats: {
+        average: averageCompletionTime,
+        completionRate: totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0,
+        onTimeCompletion: 0, // requires SLA logic - placeholder
+      },
+      priorityDistribution,
+      recentActivity: {
+        thisWeek: { completed: thisWeekCompleted, inProgress: thisWeekInProgress, vsLastWeek: 'N/A' },
+        thisMonth: { completed: thisMonthCompleted, inProgress: thisMonthInProgress, vsLastMonth: 'N/A' },
+        equipmentStatus: { healthy: equipmentHealth, criticalIssues: priorityDistribution.critical || 0, vsLastMonth: 'N/A' },
+      },
+      recentRequests,
+      upcomingMaintenance,
+      activeTechnicians,
+    };
+
+    res.status(200).json(dashboardData);
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).json({ message: 'Server error fetching dashboard data', error: error.message });
+  }
 };
 
 const getMaintenanceTrends = (req, res) => {

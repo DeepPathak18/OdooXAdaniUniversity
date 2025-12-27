@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit, Save, X, Camera, Settings, Shield, Award, Globe  , Github } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit, Save, X, Camera, Settings, Shield, Award, Globe } from 'lucide-react';
 
 const GearGuardProfile = () => {
+  const navigate = useNavigate();
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -139,6 +141,19 @@ const GearGuardProfile = () => {
     loadProfile();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      // optional: call server logout endpoint if you have one
+      // await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeader() });
+    } catch (err) {
+      // ignore errors during logout
+    }
+    localStorage.removeItem('token');
+    // clear any other stored user info
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       {/* Success Toast */}
@@ -224,6 +239,13 @@ const GearGuardProfile = () => {
                     >
                       <Edit className="w-4 h-4" />
                       Edit Profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all duration-300 flex items-center gap-2"
+                      title="Logout"
+                    >
+                      Logout
                     </button>
                   </>
                 ) : (
@@ -384,65 +406,7 @@ const GearGuardProfile = () => {
                     )}
                   </div>
 
-                  {/* LinkedIn */}
-                  <div>
-                    <label className="block text-slate-400 text-sm font-medium mb-2 flex items-center gap-2">
-                      <Linkedin className="w-4 h-4" />
-                      LinkedIn
-                    </label>
-                    {editMode ? (
-                      <input
-                        type="text"
-                        name="linkedin"
-                        value={formData.linkedin}
-                        onChange={handleChange}
-                        placeholder="username"
-                        className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
-                      />
-                    ) : (
-                      <p className="text-white font-medium">{userData?.linkedin || ''}</p>
-                    )}
-                  </div>
-
-                  {/* Twitter */}
-                  <div>
-                    <label className="block text-slate-400 text-sm font-medium mb-2 flex items-center gap-2">
-                      <Twitter className="w-4 h-4" />
-                      Twitter
-                    </label>
-                    {editMode ? (
-                      <input
-                        type="text"
-                        name="twitter"
-                        value={formData.twitter}
-                        onChange={handleChange}
-                        placeholder="@username"
-                        className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
-                      />
-                    ) : (
-                      <p className="text-white font-medium">{userData?.twitter || ''}</p>
-                    )}
-                  </div>
-
-                  {/* GitHub */}
-                  <div>
-                    <label className="block text-slate-400 text-sm font-medium mb-2 flex items-center gap-2">
-                      <Github className="w-4 h-4" />
-                      GitHub
-                    </label>
-                    {editMode ? (
-                      <input
-                        type="text"
-                        name="github"
-                        value={formData.github}
-                        onChange={handleChange}
-                        placeholder="username"
-                        className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
-                      />
-                    ) : (
-                      <p className="text-white font-medium">{userData?.github || ''}</p>
-                    )}
-                  </div>
+           
                 </div>
               </div>
             </div>

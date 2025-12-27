@@ -17,6 +17,7 @@ export default function CreateMaintenanceRequest({ user }) {
     maintenanceType: 'Corrective',
     team: '',
     technician: '',
+    requestDate: '',
     scheduledDate: '',
     durationHours: '',
     priority: 'Medium',
@@ -137,7 +138,8 @@ export default function CreateMaintenanceRequest({ user }) {
       const requestData = {
         ...formData,
         durationHours: formData.durationHours ? parseFloat(formData.durationHours) : 0,
-        scheduledDate: formData.scheduledDate || undefined,
+        scheduledDate: formData.scheduledDate ? new Date(formData.scheduledDate) : undefined,
+        requestDate: formData.requestDate ? new Date(formData.requestDate) : undefined,
         technician: formData.technician || undefined,
         status: saveAsDraft ? 'New' : formData.status
       };
@@ -279,13 +281,13 @@ export default function CreateMaintenanceRequest({ user }) {
                     </label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="date"
-                        name="scheduledDate"
-                        value={formData.scheduledDate || ''}
-                        onChange={handleInputChange}
-                        className="w-full pl-11 pr-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                      />
+                          <input
+                            type="date"
+                            name="requestDate"
+                            value={formData.requestDate || ''}
+                            onChange={handleInputChange}
+                            className="w-full pl-11 pr-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                          />
                     </div>
                   </div>
                 </div>
