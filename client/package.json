@@ -13,7 +13,7 @@
     "@react-oauth/google": "^0.12.2",
     "@tailwindcss/postcss": "^4.1.12",
     "appwrite": "^18.2.0",
-    "axios": "^1.11.0",
+    "axios": "^1.13.2",
     "chart.js": "^4.5.0",
     "cloudinary": "^2.7.0",
     "framer-motion": "^12.23.12",
