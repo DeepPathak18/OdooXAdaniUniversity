@@ -25,6 +25,13 @@ const GearGuardAuth = () => {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     // Generate floating particles
     const newParticles = [];
     for (let i = 0; i < 20; i++) {

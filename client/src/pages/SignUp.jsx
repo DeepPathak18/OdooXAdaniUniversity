@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Wrench, Eye, EyeOff, Loader, CheckCircle, AlertCircle, Shield } from 'lucide-react';
 
 const GearGuardAuth = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -11,6 +13,7 @@ const GearGuardAuth = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [particles, setParticles] = useState([]);
 
+  // Form state
   const [formData, setFormData] = useState({
     username: '',
     firstName: '',
@@ -22,6 +25,14 @@ const GearGuardAuth = () => {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    // Generate floating particles
     const newParticles = [];
     for (let i = 0; i < 20; i++) {
       newParticles.push({
@@ -65,11 +76,13 @@ const GearGuardAuth = () => {
     setErrorMessage('');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage('');
     setSuccessMessage('');
 
+    // Validation
     if (isSignUp) {
       if (formData.password !== formData.confirmPassword) {
         setErrorMessage('Passwords do not match');
@@ -83,8 +96,29 @@ const GearGuardAuth = () => {
       }
     }
 
-    setTimeout(() => {
+    // API call
+    try {
       if (isSignUp) {
+        // TODO: Replace with actual signup API call
+        const response = await fetch('http://localhost:5000/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: formData.username,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Sign up failed');
+        }
+
         setSuccessMessage('Account created successfully! Please sign in.');
         setTimeout(() => {
           setIsSignUp(false);
@@ -92,13 +126,57 @@ const GearGuardAuth = () => {
           setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
         }, 2000);
       } else {
-        setSuccessMessage('Welcome back! Redirecting to dashboard...');
-        setTimeout(() => {
-          console.log('Navigate to dashboard');
-        }, 1500);
+        // Sign in API call
+        const response = await fetch('http://localhost:5000/api/auth/signin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        if (!response.ok) {
+          let error;
+          try {
+            error = await response.json();
+          } catch (e) {
+            error = { message: 'Sign in failed' };
+          }
+          throw new Error(error.message || 'Sign in failed');
+        }
+
+        const data = await response.json();
+        
+        // Check if OTP is required or direct login
+        if (data.token) {
+          // Direct login (test user or Google signin)
+          localStorage.setItem('token', data.token);
+          if (data.user) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+          }
+          setSuccessMessage('Welcome back! Redirecting to dashboard...');
+          
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
+        } else if (data.message === 'OTP sent to your email') {
+          // OTP required - redirect to OTP verification
+          setSuccessMessage('OTP sent to your email. Redirecting to verification...');
+          setTimeout(() => {
+            navigate('/verify-otp', { state: { email: formData.email } });
+          }, 1000);
+        } else {
+          throw new Error('Unexpected response from server');
+        }
       }
+    } catch (error) {
+      setErrorMessage(error.message || 'An error occurred. Please try again.');
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -123,6 +201,7 @@ const GearGuardAuth = () => {
 
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-red-600">
           <div className="absolute inset-0 opacity-20">
             {[...Array(10)].map((_, i) => (
@@ -142,12 +221,14 @@ const GearGuardAuth = () => {
           </div>
         </div>
 
+        {/* Gear Pattern */}
         <div className="absolute inset-0 opacity-10">
           <Wrench className="absolute top-20 left-20 w-32 h-32 animate-spin-slow" />
           <Wrench className="absolute bottom-32 right-32 w-24 h-24 animate-spin-reverse" />
           <Wrench className="absolute top-1/2 left-1/4 w-20 h-20 animate-bounce-slow" />
         </div>
 
+        {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
           <div>
             <div className="flex items-center gap-3 mb-8">
@@ -202,6 +283,7 @@ const GearGuardAuth = () => {
       {/* Right Panel - Auth Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative">
         <div className="w-full max-w-md relative z-10">
+          {/* Toggle Button */}
           <button
             onClick={handleToggleForm}
             className="absolute -top-4 right-0 w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-180"
@@ -210,7 +292,9 @@ const GearGuardAuth = () => {
             <Wrench className="w-5 h-5 text-orange-400" />
           </button>
 
+          {/* Form Container */}
           <div className={`bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-8 shadow-2xl transition-all duration-400 ${isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+            {/* Logo for Mobile */}
             <div className="lg:hidden flex items-center gap-3 mb-8">
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
                 <Wrench className="w-6 h-6 text-white" />
@@ -221,6 +305,7 @@ const GearGuardAuth = () => {
               </div>
             </div>
 
+            {/* Header */}
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-white mb-2">
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
@@ -230,6 +315,7 @@ const GearGuardAuth = () => {
               </p>
             </div>
 
+            {/* Messages */}
             {errorMessage && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3 animate-shake">
                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
@@ -244,7 +330,8 @@ const GearGuardAuth = () => {
               </div>
             )}
 
-            <div className="space-y-5">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
               {isSignUp && (
                 <>
                   <div>
@@ -257,6 +344,7 @@ const GearGuardAuth = () => {
                       value={formData.username}
                       onChange={handleChange}
                       placeholder="Enter username"
+                      required
                       className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
                   </div>
@@ -272,6 +360,7 @@ const GearGuardAuth = () => {
                         value={formData.firstName}
                         onChange={handleChange}
                         placeholder="First name"
+                        required
                         className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                       />
                     </div>
@@ -285,6 +374,7 @@ const GearGuardAuth = () => {
                         value={formData.lastName}
                         onChange={handleChange}
                         placeholder="Last name"
+                        required
                         className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                       />
                     </div>
@@ -302,6 +392,7 @@ const GearGuardAuth = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email"
+                  required
                   className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                 />
               </div>
@@ -317,6 +408,7 @@ const GearGuardAuth = () => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Enter your password"
+                    required
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
                   <button
@@ -341,6 +433,7 @@ const GearGuardAuth = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="Confirm your password"
+                      required
                       className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
                     <button
@@ -362,18 +455,18 @@ const GearGuardAuth = () => {
                       name="rememberMe"
                       checked={formData.rememberMe}
                       onChange={handleChange}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-orange-500"
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-800"
                     />
                     <span className="text-slate-400 text-sm">Remember me</span>
                   </label>
-                  <button className="text-orange-400 text-sm hover:text-orange-300 transition-colors">
+                  <a href="#" className="text-orange-400 text-sm hover:text-orange-300 transition-colors">
                     Forgot password?
-                  </button>
+                  </a>
                 </div>
               )}
 
               <button
-                onClick={handleSubmit}
+                type="submit"
                 disabled={isSubmitting}
                 className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
               >
@@ -386,8 +479,9 @@ const GearGuardAuth = () => {
                   <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
                 )}
               </button>
-            </div>
+            </form>
 
+            {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-700"></div>
@@ -397,6 +491,7 @@ const GearGuardAuth = () => {
               </div>
             </div>
 
+            {/* Social Login */}
             <button
               type="button"
               className="w-full py-3 bg-white hover:bg-gray-50 text-slate-700 font-medium rounded-lg transition-all duration-300 flex items-center justify-center gap-3 border border-slate-300"
@@ -410,6 +505,7 @@ const GearGuardAuth = () => {
               <span>Continue with Google</span>
             </button>
 
+            {/* Toggle Link */}
             <p className="text-center text-slate-400 text-sm mt-6">
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button
@@ -424,41 +520,7 @@ const GearGuardAuth = () => {
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes float-particle {
-          0%, 100% { transform: translate(0, 0); opacity: 0.2; }
-          25% { transform: translate(10px, -20px); opacity: 0.4; }
-          50% { transform: translate(-10px, -40px); opacity: 0.6; }
-          75% { transform: translate(15px, -30px); opacity: 0.4; }
-        }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes spin-reverse {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-10px); }
-          75% { transform: translateX(10px); }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-float-particle { animation: float-particle 15s infinite ease-in-out; }
-        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
-        .animate-spin-reverse { animation: spin-reverse 15s linear infinite; }
-        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-        .animate-shake { animation: shake 0.5s ease-in-out; }
-        .animate-fade-in { animation: fade-in 0.3s ease-out; }
-      `}</style>
+      
     </div>
   );
 };
