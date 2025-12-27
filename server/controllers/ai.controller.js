@@ -1,9 +1,6 @@
-const express = require("express");
 const { generateAIReply } = require("../services/aiService.js");
 
-const router = express.Router();
-
-router.post("/chat", async (req, res) => {
+const chat = async (req, res) => {
   try {
     const { message, history = [] } = req.body;
 
@@ -19,4 +16,4 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = { chat };

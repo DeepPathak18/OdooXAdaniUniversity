@@ -1,5 +1,3 @@
-const express = require('express');
-const router = express.Router();
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
@@ -42,7 +40,7 @@ const otpVerifyLimiter = rateLimit({
  * @desc    Request a password reset OTP
  * @access  Public
  */
-router.post('/request-otp', otpRequestLimiter, async (req, res) => {
+const requestOtp = async (req, res) => {
     const { email } = req.body;
     if (!email) {
         return res.status(400).json({ success: false, message: 'Email is required.' });
@@ -98,7 +96,7 @@ router.post('/request-otp', otpRequestLimiter, async (req, res) => {
  * @desc    Verify the OTP
  * @access  Public
  */
-router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
+const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) {
         return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
@@ -136,7 +134,7 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
  * @desc    Change the user's password after OTP verification
  * @access  Public
  */
-router.post('/change-password', async (req, res) => {
+const changePassword = async (req, res) => {
     const { email, newPassword } = req.body;
     if (!email || !newPassword) {
         return res.status(400).json({ success: false, message: 'Email and new password are required.' });
@@ -175,4 +173,4 @@ router.post('/change-password', async (req, res) => {
 });
 
 
-module.exports = router;
+module.exports = { requestOtp, verifyOtp, changePassword, otpRequestLimiter, otpVerifyLimiter };

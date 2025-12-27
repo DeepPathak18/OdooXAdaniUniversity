@@ -1,5 +1,3 @@
-const express = require("express");
-const router = express.Router();
 const User = require("../models/User");
 const Activity = require("../models/Activity");
 const Otp = require("../models/Otp");
@@ -17,7 +15,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Signup
-router.post("/signup", async (req, res) => {
+const signup = async (req, res) => {
   const { username, firstName, lastName, email, password } = req.body;
 
   console.log("Signup attempt for email:", email);
@@ -94,7 +92,7 @@ router.post("/signup", async (req, res) => {
 });
 
 // Signin
-router.post("/signin", async (req, res) => {
+const signin = async (req, res) => {
   const { email, password } = req.body;
   console.log("Signin attempt for email:", email);
 
@@ -177,7 +175,7 @@ router.post("/signin", async (req, res) => {
   }
 });
 
-router.post("/verify-otp", async (req, res) => {
+const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
@@ -242,7 +240,7 @@ router.post("/verify-otp", async (req, res) => {
 });
 
 // Google Sign-In
-router.post("/google-signin", async (req, res) => {
+const googleSignin = async (req, res) => {
   const { email, firstName, lastName, googleId } = req.body;
 
   try {
@@ -294,7 +292,7 @@ router.post("/google-signin", async (req, res) => {
 });
 
 // GitHub OAuth Callback
-router.get("/github/callback", async (req, res) => {
+const githubCallback = async (req, res) => {
   const { code } = req.query;
   console.log("GitHub callback initiated. Code:", code);
 
@@ -492,4 +490,4 @@ const fetchProfile = async () => {
   }
 };
 
-module.exports = router;
+module.exports = { signup, signin, verifyOtp, googleSignin, githubCallback };

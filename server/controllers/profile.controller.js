@@ -1,5 +1,3 @@
-const express = require('express');
-const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const { protect } = require('../middleware/authMiddleware');
@@ -39,7 +37,7 @@ function checkFileType(file, cb) {
 // @route   PUT /api/profile/avatar
 // @desc    Update user avatar
 // @access  Private
-router.put('/avatar', protect, (req, res) => {
+const updateAvatar = (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ message: err });
@@ -73,7 +71,7 @@ router.put('/avatar', protect, (req, res) => {
 // @route   GET api/profile/me
 // @desc    Get current user's profile
 // @access  Private
-router.get('/me', protect, async (req, res) => {
+const getProfile = async (req, res) => {
   try {
     // req.user is attached by the protect middleware
     const user = await User.findById(req.user.id).select('-password');
@@ -90,7 +88,7 @@ router.get('/me', protect, async (req, res) => {
 // @route   PUT api/profile/me
 // @desc    Update user profile
 // @access  Private
-router.put('/me', protect, async (req, res) => {
+const updateProfile = async (req, res) => {
     const { firstName, lastName, email, phoneNumber, gender } = req.body;
 
     try {
@@ -154,7 +152,7 @@ router.put('/me', protect, async (req, res) => {
 // @route   GET api/profile/activity
 // @desc    Get user activity
 // @access  Private
-router.get('/activity', protect, async (req, res) => {
+const getActivity = async (req, res) => {
     try {
         const activities = await Activity.find({ user: req.user.id }).sort({ createdAt: -1 });
         res.json(activities);
@@ -164,4 +162,4 @@ router.get('/activity', protect, async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = { updateAvatar, getProfile, updateProfile, getActivity };
