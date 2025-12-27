@@ -89,7 +89,7 @@ const signup = async (req, res) => {
     console.error("Signup error details:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
-});
+};
 
 // Signin
 const signin = async (req, res) => {
@@ -173,7 +173,7 @@ const signin = async (req, res) => {
     console.error("Signin error stack:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
-});
+};
 
 const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
@@ -237,7 +237,7 @@ const verifyOtp = async (req, res) => {
     console.error("OTP verification error:", err);
     res.status(500).json({ message: "Server error" });
   }
-});
+};
 
 // Google Sign-In
 const googleSignin = async (req, res) => {
@@ -289,7 +289,7 @@ const googleSignin = async (req, res) => {
     console.error("Google Sign-in error:", err);
     res.status(500).json({ message: "Server error" });
   }
-});
+};
 
 // GitHub OAuth Callback
 const githubCallback = async (req, res) => {
@@ -417,7 +417,7 @@ const githubCallback = async (req, res) => {
       )}`
     );
   }
-});
+};
 
 // 1. Create an API client (e.g., api.js)
 const api = axios.create({

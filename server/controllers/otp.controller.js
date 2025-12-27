@@ -89,7 +89,7 @@ const requestOtp = async (req, res) => {
         console.error('Error in /request-otp:', error);
         res.status(500).json({ success: false, message: 'Server error. Could not send OTP.' });
     }
-});
+};
 
 /**
  * @route   POST /api/otp/verify-otp
@@ -126,7 +126,7 @@ const verifyOtp = async (req, res) => {
         console.error('Error in /verify-otp:', error);
         res.status(500).json({ success: false, message: 'Server error.' });
     }
-});
+};
 
 
 /**
@@ -170,7 +170,7 @@ const changePassword = async (req, res) => {
         console.error('Error in /change-password:', error);
         res.status(500).json({ success: false, message: 'Server error.' });
     }
-});
+};
 
 
 module.exports = { requestOtp, verifyOtp, changePassword, otpRequestLimiter, otpVerifyLimiter };

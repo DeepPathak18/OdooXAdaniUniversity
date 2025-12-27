@@ -1,6 +1,7 @@
 // 1. Load environment variables at the very top. This is crucial.
 const dotenvResult = require('dotenv').config();
 const aiRoutes = require('./routes/ai.routes.js');
+const mongoose = require('mongoose');
 
 if (dotenvResult.error) {
   console.error('Error loading .env file:', dotenvResult.error);
