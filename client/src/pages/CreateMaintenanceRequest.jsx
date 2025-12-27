@@ -27,10 +27,10 @@ export default function CreateMaintenanceRequest({ user, onLogout }) {
 
   const [activeTab, setActiveTab] = useState('Notes');
   const [equipmentList, setEquipmentList] = useState([]);
-  const [teamList, setTeamList] = useState([]);
-  const [technicianList, setTechnicianList] = useState([]);
+  const [allTeams, setAllTeams] = useState([]); // Store all teams with members
+  const [technicianList, setTechnicianList] = useState([]); // All technicians from all teams
+  const [availableTechnicians, setAvailableTechnicians] = useState([]); // Technicians for selected team
 
-  // Fetch equipment, teams, and technicians
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -57,7 +57,7 @@ export default function CreateMaintenanceRequest({ user, onLogout }) {
       }
     };
 
-    const fetchTeamList = async () => {
+    const fetchTeamsAndTechnicians = async () => {
       try {
         const response = await fetch('http://localhost:5000/api/teams', {
           headers: {
@@ -67,35 +67,30 @@ export default function CreateMaintenanceRequest({ user, onLogout }) {
         if (!response.ok) {
           throw new Error('Failed to fetch team list');
         }
-        const data = await response.json();
-        setTeamList(data);
-      } catch (error) {
-        toast.error(error.message || 'Error fetching teams');
-        console.error('Error fetching teams:', error);
-      }
-    };
+        const teamsData = await response.json();
+        setAllTeams(teamsData);
 
-    const fetchTechnicianList = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/profile/technicians', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+        const allTechnicians = [];
+        const uniqueTechnicianIds = new Set();
+
+        teamsData.forEach(team => {
+          team.members.forEach(member => {
+            if (!uniqueTechnicianIds.has(member._id)) {
+              allTechnicians.push(member);
+              uniqueTechnicianIds.add(member._id);
+            }
+          });
         });
-        if (!response.ok) {
-          throw new Error('Failed to fetch technicians list');
-        }
-        const data = await response.json();
-        setTechnicianList(data);
+        setTechnicianList(allTechnicians);
+        setAvailableTechnicians(allTechnicians); // Initially, all technicians are available
       } catch (error) {
-        toast.error(error.message || 'Error fetching technicians');
-        console.error('Error fetching technicians:', error);
+        toast.error(error.message || 'Error fetching teams and technicians');
+        console.error('Error fetching teams and technicians:', error);
       }
     };
     
     fetchEquipmentList();
-    fetchTeamList();
-    fetchTechnicianList();
+    fetchTeamsAndTechnicians();
   }, [navigate]);
 
   const handleInputChange = (e) => {
@@ -104,6 +99,20 @@ export default function CreateMaintenanceRequest({ user, onLogout }) {
       ...prev,
       [name]: value
     }));
+
+    if (name === 'team') {
+      const selectedTeam = allTeams.find(team => team._id === value);
+      if (selectedTeam) {
+        setAvailableTechnicians(selectedTeam.members);
+      } else {
+        setAvailableTechnicians(technicianList); // If no team selected, show all technicians
+      }
+      setFormData(prev => ({ // Reset technician when team changes
+        ...prev,
+        technician: '',
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = async (e, saveAsDraft = false) => {
@@ -409,7 +418,7 @@ export default function CreateMaintenanceRequest({ user, onLogout }) {
                         className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white appearance-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                       >
                         <option value="">Select Technician (Optional)</option>
-                        {technicianList.map((tech) => (
+                        {availableTechnicians.map((tech) => (
                           <option key={tech._id} value={tech._id}>
                             {tech.firstName} {tech.lastName}
                           </option>
