@@ -10,6 +10,8 @@ import SignUp from './pages/SignUp';
 import SignIn from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Maintenance from './pages/Maintenance';
+import CreateMaintenanceRequest from './pages/CreateMaintenanceRequest';
+import Reporting from './pages/Reporting';
 import Profile from './pages/Profile';
 import ActivityPage from './pages/Activity';
 import ForgotPassword from './pages/ForgotPassword';
@@ -99,6 +101,14 @@ function App() {
         <Route
           path="/maintenance"
           element={<PrivateRoute><Maintenance user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/maintenance/new"
+          element={<PrivateRoute><CreateMaintenanceRequest user={user} onLogout={handleLogout} /></PrivateRoute>}
+        />
+        <Route
+          path="/reporting"
+          element={<PrivateRoute><Reporting user={user} onLogout={handleLogout} /></PrivateRoute>}
         />
         <Route
           path="/profile"

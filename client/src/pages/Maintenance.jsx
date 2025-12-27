@@ -180,9 +180,13 @@ export default function Maintenance({ user, onLogout }) {
               <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
                 <Settings className="w-5 h-5" />
               </button>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {user ? (user.name ? user.name.charAt(0).toUpperCase() : 'U') : 'U'}
-              </div>
+              <button
+                onClick={() => navigate('/profile')}
+                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold hover:ring-2 hover:ring-cyan-400 transition-all cursor-pointer"
+                title="View Profile"
+              >
+                {user ? (user.name ? user.name.charAt(0).toUpperCase() : user.firstName?.charAt(0).toUpperCase() || 'U') : 'U'}
+              </button>
             </div>
           </div>
         </div>
@@ -198,6 +202,8 @@ export default function Maintenance({ user, onLogout }) {
                 onClick={() => {
                   if (tab === 'Dashboard') {
                     navigate('/dashboard');
+                  } else if (tab === 'Reporting') {
+                    navigate('/reporting');
                   } else {
                     setActiveTab(tab);
                   }
@@ -219,7 +225,10 @@ export default function Maintenance({ user, onLogout }) {
       <main className="px-6 py-6">
         {/* Action Bar */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <button className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30">
+          <button 
+            onClick={() => navigate('/maintenance/new')}
+            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30"
+          >
             <Plus className="w-5 h-5" />
             <span>New Request</span>
           </button>

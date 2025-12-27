@@ -1,851 +1,541 @@
-  import React, { useState, useEffect, useRef } from 'react';
-  import styled, { keyframes, css } from 'styled-components';
-  import { toast } from 'react-toastify';
-  import { FaSyncAlt, FaGithub, FaEye, FaEyeSlash } from 'react-icons/fa';
-  import { useNavigate, useLocation, Link } from 'react-router-dom';
-  import { useGoogleLogin } from '@react-oauth/google';
-  import axios from 'axios';
-  import { jwtDecode } from 'jwt-decode';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Wrench, Eye, EyeOff, Loader, CheckCircle, AlertCircle, Settings, Shield } from 'lucide-react';
 
-  // --- Keyframes (Animations) ---
-  const float = keyframes`
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-  `;
+const GearGuardAuth = () => {
+  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [particles, setParticles] = useState([]);
 
-  const twinkle = keyframes`
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  `;
+  // Form state
+  const [formData, setFormData] = useState({
+    username: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    rememberMe: false
+  });
 
-  const slideOut = keyframes`
-    0% { transform: translateX(0); opacity: 1; }
-    100% { transform: translateX(50px); opacity: 0; }
-  `;
+  useEffect(() => {
+    // Generate floating particles
+    const newParticles = [];
+    for (let i = 0; i < 20; i++) {
+      newParticles.push({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        size: `${Math.random() * 3 + 2}px`,
+        delay: `${Math.random() * 5}s`,
+        duration: `${Math.random() * 10 + 8}s`
+      });
+    }
+    setParticles(newParticles);
+  }, []);
 
-  const slideIn = keyframes`
-    0% { transform: translateX(-50px); opacity: 0; }
-    100% { transform: translateX(0); opacity: 1; }
-  `;
+  const handleToggleForm = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    setTimeout(() => {
+      setIsSignUp(!isSignUp);
+      setFormData({
+        username: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        rememberMe: false
+      });
+      setIsAnimating(false);
+    }, 400);
+  };
 
-  const fadeIn = keyframes`
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-  `;
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    setErrorMessage('');
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
-  // --- React Component ---
-  const SignIn = () => {
-    const location = useLocation(); // Get location object
-    const [isSignUp, setIsSignUp] = useState(false);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-    const [stars, setStars] = useState([]);
-    const [errorMessage, setErrorMessage] = useState(''); // State for error message
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [emailValue, setEmailValue] = useState('');
-    const [passwordValue, setPasswordValue] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
-    const navigate = useNavigate();
-
-    const emailRef = useRef(null);
-    const passwordRef = useRef(null);
-    const confirmPasswordRef = useRef(null);
-
-    useEffect(() => {
-      const newStars = [];
-      for (let i = 0; i < 50; i++) {
-        newStars.push({
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          size: `${Math.random() * 2 + 1}px`,
-          delay: `${Math.random() * 2}s`,
-        });
-      }
-      setStars(newStars);
-
-      // Check for logout message
-      const logoutMessage = localStorage.getItem('logoutMessage');
-      if (logoutMessage) {
-        toast.info(logoutMessage);
-        localStorage.removeItem('logoutMessage');
-      }
-
-      // Load remembered email if it exists
-      const remembered = localStorage.getItem('rememberMe');
-      if (remembered) {
-        try {
-          const { email } = JSON.parse(remembered);
-          setEmailValue(email);
-          setRememberMe(true);
-        } catch (error) {
-          console.error('Error parsing remembered email:', error);
-        }
-      }
-    }, []);
-
-    useEffect(() => {
-      // Check query parameter to set initial mode
-      const params = new URLSearchParams(location.search);
-      if (params.get('mode') === 'signup') {
-        setIsSignUp(true);
-      }
-    }, [location]);
-
-    const handleToggleForm = (e) => {
-      e.preventDefault();
-      if (isAnimating) return;
-
-      setIsAnimating(true);
-      setTimeout(() => {
-        setIsSignUp(prev => !prev);
-        setIsAnimating(false);
-      }, 300); // Duration of the animation
-    };
-
-    const handleFormSubmit = async (e) => {
-      e.preventDefault();
-      if (isSubmitting) return;
-
-      setIsSubmitting(true);
-      setErrorMessage(''); // Clear previous error message
-
-      // Get values directly from state
-      const email = emailValue;
-      const password = passwordValue;
-
-      // Get other form values if in signup mode
-      const firstName = isSignUp ? e.target.querySelector('input[name="firstName"]').value : null;
-      const lastName = isSignUp ? e.target.querySelector('input[name="lastName"]').value : null;
-      const username = isSignUp ? e.target.querySelector('input[name="username"]').value : null;
-
-      // Check if passwords match in signup mode
-      if (isSignUp && passwordValue !== confirmPasswordRef.current.value) {
+    // Validation
+    if (isSignUp) {
+      if (formData.password !== formData.confirmPassword) {
         setErrorMessage('Passwords do not match');
         setIsSubmitting(false);
         return;
       }
-
-      try {
-        if (isSignUp) {
-          // Call sign-up API
-          console.log('Attempting sign-up for:', email); // Added log
-          const response = await fetch('http://localhost:5000/api/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, firstName, lastName, username }),
-          });
-
-          console.log('Sign-up API response:', response); // Added log
-          const data = await response.json();
-          console.log('Sign-up API response data:', data); // Added log
-
-          if (!response.ok) {
-            console.error('Sign-up failed with response not ok:', data); // Added log
-            throw new Error(data.message || 'Sign-up failed');
-          }
-
-          toast.success('Sign-up successful! Please sign in.');
-          setIsSignUp(false); // Switch back to Sign In mode
-          // Clear form fields
-          setEmailValue('');
-          setPasswordValue('');
-        }
-        else {
-          // Call sign-in API
-          console.log('Attempting sign-in for:', email); // Added log
-          const response = await fetch('http://localhost:5000/api/auth/signin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          });
-
-          console.log('Sign-in API response:', response); // Added log
-          const data = await response.json();
-          console.log('Sign-in API response data:', data); // Added log
-
-          if (!response.ok) {
-            console.error('Sign-in failed with response not ok:', data); // Added log
-            throw new Error(data.message || 'Sign-in failed');
-          }
-
-          if (rememberMe) {
-            localStorage.setItem('rememberMe', JSON.stringify({ email })); // Store email
-          } else {
-            localStorage.removeItem('rememberMe');
-          }
-
-          // --- TEST USER BYPASS ---
-          if (email === "test@example.com") {
-            // Save token and user info
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user));
-
-            // ✅ Navigate to dashboard
-            navigate("/dashboard");
-          } else {
-            // Normal users -> OTP verification page
-            navigate("/verify-otp", { state: { email: data.email } });
-          }
-          setIsSubmitting(false); // Reset submitting state on success
-
-        }
-      } catch (error) {
-        console.error("Error occurred during form submission:", error); // Modified log
-        setIsSubmitting(false); // Ensure state is reset on error too
-        setErrorMessage(error.message); // Display error message to user
+      if (formData.password.length < 6) {
+        setErrorMessage('Password must be at least 6 characters');
+        setIsSubmitting(false);
+        return;
       }
-    };
+    }
 
-    const handleGoogleSignIn = useGoogleLogin({
-      onSuccess: async (tokenResponse) => {
-        setIsGoogleLoading(true);
-        try {
-          const userInfo = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-          });
+    // API call
+    try {
+      if (isSignUp) {
+        // TODO: Replace with actual signup API call
+        const response = await fetch('http://localhost:5000/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: formData.username,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
 
-          const { email, given_name, family_name } = userInfo.data;
-
-          // Now, send this information to your backend to either sign up or sign in the user
-          const response = await fetch('http://localhost:5000/api/auth/google-signin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email,
-              firstName: given_name,
-              lastName: family_name,
-              googleId: userInfo.data.sub,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.message || 'Google sign-in failed');
-          }
-
-          navigate('/verify-otp', { state: { email: data.email } });
-
-        } catch (error) {
-          if (error.message.includes('network')) {
-            setErrorMessage('Network error. Please check your internet connection.');
-          } else {
-            setErrorMessage(error.message);
-          }
-        } finally {
-          setIsGoogleLoading(false);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Sign up failed');
         }
-      },
-      onError: (error) => {
-        if (error.message.includes('popup_closed_by_user')) {
-          setErrorMessage('Google login was cancelled.');
-        } else {
-          setErrorMessage('Google login failed. Please try again.');
+
+        setSuccessMessage('Account created successfully! Please sign in.');
+        setTimeout(() => {
+          setIsSignUp(false);
+          setSuccessMessage('');
+          setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+        }, 2000);
+      } else {
+        // Sign in API call
+        const response = await fetch('http://localhost:5000/api/auth/signin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Sign in failed');
         }
-        setIsGoogleLoading(false);
-      },
-    });
 
-    return (
-      <Container>
-        <LeftPanel>
-          <CosmicBg />
-          <Planet />
-          <Mountains />
-          <Stars>
-            {stars.map((star, i) => <Star key={i} {...star} />)}
-          </Stars>
+        const data = await response.json();
+        
+        // Store token and user data
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
 
-          <LeftContent>
-            <div>
-              <LogoSection>
-                <h1>Spherical Worlds</h1>
-                <p>Explore infinite possibilities</p>
-              </LogoSection>
-              <NavButtons>
-                <NavBtn href="#">Sign Up</NavBtn>
-                <NavBtn href="#">Join Us</NavBtn>
-              </NavButtons>
+        setSuccessMessage('Welcome back! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
+      }
+    } catch (error) {
+      setErrorMessage(error.message || 'An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex overflow-hidden">
+      {/* Floating Particles */}
+      <div className="fixed inset-0 pointer-events-none">
+        {particles.map(particle => (
+          <div
+            key={particle.id}
+            className="absolute rounded-full bg-orange-500/20 animate-float-particle"
+            style={{
+              left: particle.left,
+              top: particle.top,
+              width: particle.size,
+              height: particle.size,
+              animationDelay: particle.delay,
+              animationDuration: particle.duration
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-red-600">
+          <div className="absolute inset-0 opacity-20">
+            {[...Array(10)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full bg-white animate-pulse"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  width: `${Math.random() * 200 + 50}px`,
+                  height: `${Math.random() * 200 + 50}px`,
+                  animationDelay: `${i * 0.5}s`,
+                  animationDuration: `${3 + Math.random() * 2}s`
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Gear Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <Settings className="absolute top-20 left-20 w-32 h-32 animate-spin-slow" />
+          <Settings className="absolute bottom-32 right-32 w-24 h-24 animate-spin-reverse" />
+          <Wrench className="absolute top-1/2 left-1/4 w-20 h-20 animate-bounce-slow" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
+          <div>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <Wrench className="w-7 h-7" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">GearGuard</h1>
+                <p className="text-orange-100 text-sm">Maintenance Tracking System</p>
+              </div>
             </div>
 
-            <BottomInfo>
-              <h3>Andrean.ui</h3>
-              <p>UI & UX Designer</p>
-            </BottomInfo>
-          </LeftContent>
-        </LeftPanel>
+            <div className="space-y-6 mt-16">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Track Equipment</h3>
+                  <p className="text-orange-100 text-sm">Monitor all your equipment and assets in one place</p>
+                </div>
+              </div>
 
-        <RightPanel>
-          <ToggleFormButton onClick={handleToggleForm}>
-            <FaSyncAlt />
-          </ToggleFormButton>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Schedule Maintenance</h3>
+                  <p className="text-orange-100 text-sm">Automated scheduling and reminders</p>
+                </div>
+              </div>
 
-          <FormContainer $isAnimating={isAnimating} $isSignUp={isSignUp}>
-            <Brand>
-              <BrandLogo />
-              <h2>UISOCIAL</h2>
-            </Brand>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Prevent Downtime</h3>
+                  <p className="text-orange-100 text-sm">Predictive maintenance and analytics</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            <Welcome>
-              <h1>{isSignUp ? 'Create Account' : 'Hi Designer'}</h1>
-              <p>{isSignUp ? 'Join UISOCIAL today' : 'Welcome to UISOCIAL'}</p>
-            </Welcome>
+          <div className="text-sm text-orange-100">
+            © 2025 GearGuard. All rights reserved.
+          </div>
+        </div>
+      </div>
 
-            <form onSubmit={handleFormSubmit}>
-              {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>} {/* Display error message */}
+      {/* Right Panel - Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative">
+        <div className="w-full max-w-md relative z-10">
+          {/* Toggle Button */}
+          <button
+            onClick={handleToggleForm}
+            className="absolute -top-4 right-0 w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-180"
+            disabled={isAnimating}
+          >
+            <Settings className="w-5 h-5 text-orange-400" />
+          </button>
+
+          {/* Form Container */}
+          <div className={`bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-8 shadow-2xl transition-all duration-400 ${isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+            {/* Logo for Mobile */}
+            <div className="lg:hidden flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <Wrench className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">GearGuard</h1>
+                <p className="text-slate-400 text-sm">Maintenance Tracker</p>
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">
+                {isSignUp ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="text-slate-400">
+                {isSignUp ? 'Start managing your equipment today' : 'Sign in to access your dashboard'}
+              </p>
+            </div>
+
+            {/* Messages */}
+            {errorMessage && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3 animate-shake">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-sm">{errorMessage}</p>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-3 animate-fade-in">
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <p className="text-green-400 text-sm">{successMessage}</p>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
               {isSignUp && (
                 <>
-                  <FormGroup>
-                    <label>Username</label>
-                    <input type="text" name="username" placeholder="Enter your username" required />
-                  </FormGroup>
-                  <FormGroup>
-                    <label>First Name</label>
-                    <input type="text" name="firstName" placeholder="Enter your first name" required />
-                  </FormGroup>
-                  <FormGroup>
-                    <label>Last Name</label>
-                    <input type="text" name="lastName" placeholder="Enter your last name" required />
-                  </FormGroup>
+                  <div>
+                    <label className="block text-slate-300 text-sm font-medium mb-2">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="Enter username"
+                      required
+                      className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-300 text-sm font-medium mb-2">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="First name"
+                        required
+                        className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 text-sm font-medium mb-2">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Last name"
+                        required
+                        className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
                 </>
               )}
-              <FormGroup>
-                <label>Email</label>
+
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  Email Address
+                </label>
                 <input
                   type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
                   placeholder="Enter your email"
                   required
-                  ref={emailRef}
-                  value={emailValue}
-                  onChange={(e) => setEmailValue(e.target.value)}
-                  style={{ color: 'black' }}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                 />
-              </FormGroup>
+              </div>
 
-              <FormGroup>
-                <label>Password</label>
-                <PasswordInputWrapper>
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  Password
+                </label>
+                <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
                     placeholder="Enter your password"
                     required
-                    ref={passwordRef}
-                    value={passwordValue}
-                    onChange={(e) => setPasswordValue(e.target.value)}
-                    style={{ color: 'black' }}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
-                  <PasswordToggle onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </PasswordToggle>
-                </PasswordInputWrapper>
-              </FormGroup>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-400 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
 
               {isSignUp && (
-                <FormGroup>
-                  <label>Confirm Password</label>
-                  <PasswordInputWrapper>
+                <div>
+                  <label className="block text-slate-300 text-sm font-medium mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
                       placeholder="Confirm your password"
                       required
-                      ref={confirmPasswordRef}
-                      style={{ color: 'black' }}
+                      className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
-                    <PasswordToggle onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                    </PasswordToggle>
-                  </PasswordInputWrapper>
-                </FormGroup>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-400 transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
               )}
 
               {!isSignUp && (
-                <RememberForgot>
-                  <RememberMe>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      id="rememberCheckbox"
                       name="rememberMe"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
+                      checked={formData.rememberMe}
+                      onChange={handleChange}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-800"
                     />
-                    <label htmlFor="rememberCheckbox">Remember me</label>
-                  </RememberMe>
-                  <ForgotPassword>
-                    <Link to="/forgot-password">Forgot password?</Link>
-                  </ForgotPassword>
-                </RememberForgot>
+                    <span className="text-slate-400 text-sm">Remember me</span>
+                  </label>
+                  <a href="#" className="text-orange-400 text-sm hover:text-orange-300 transition-colors">
+                    Forgot password?
+                  </a>
+                </div>
               )}
 
-              <SignInBtn type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In to Account')}
-              </SignInBtn>
-
-              <Divider>Or</Divider>
-
-              <GoogleBtn type="button" onClick={() => handleGoogleSignIn()} disabled={isGoogleLoading}>
-                <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M18 9.2c0-.7-.1-1.4-.2-2H9.2v3.9h4.9c-.2 1.1-.9 2-1.8 2.6v2.1h2.9c1.7-1.6 2.6-3.9 2.6-6.6z" /><path fill="#34A853" d="M9.2 18c2.4 0 4.5-.8 6-2.2l-2.9-2.1c-.8.6-1.9.9-3.1.9-2.4 0-4.4-1.6-5.1-3.9H1.1v2.1C2.6 15.9 5.7 18 9.2 18z" /><path fill="#FBBC04" d="M4.1 10.7c-.2-.6-.2-1.2 0-1.8V6.8H1.1c-.7 1.4-.7 3.1 0 4.5l3-2.6z" /><path fill="#EA4335" d="M9.2 3.6c1.3 0 2.5.4 3.4 1.3l2.5-2.5C13.7.7 11.6 0 9.2 0 5.7 0 2.6 2.1 1.1 5.4l3 2.1c.7-2.3 2.7-3.9 5.1-3.9z" /></svg>
-                <span>{isGoogleLoading ? 'Signing in...' : (isSignUp ? 'Sign up with Google' : 'Continue with Google')}</span>
-              </GoogleBtn>
-
-              <GithubBtn type="button" onClick={() => {
-                const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-                const redirectUri = 'http://localhost:5000/api/auth/github/callback';
-                const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${redirectUri}&scope=user:email`;
-                console.log('VITE_GITHUB_CLIENT_ID:', githubClientId);
-                console.log('Redirecting to GitHub Auth URL:', githubAuthUrl);
-                window.location.href = githubAuthUrl;
-              }}>
-                <FaGithub />
-                <span>Continue with Github</span>
-              </GithubBtn>
-
-              <SignupLink>
-                {isSignUp ? 'Already have an account? ' : 'Dont have an account? '}
-                <a href="#" onClick={handleToggleForm}>
-                  {isSignUp ? 'Sign in' : 'Sign up'}
-                </a>
-              </SignupLink>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    <span>Please wait...</span>
+                  </>
+                ) : (
+                  <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
+                )}
+              </button>
             </form>
-          </FormContainer>
-        </RightPanel>
-      </Container>
-    );
-  };
 
-  export default SignIn;
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-slate-800/50 text-slate-400">Or</span>
+              </div>
+            </div>
 
+            {/* Social Login */}
+            <button
+              type="button"
+              className="w-full py-3 bg-white hover:bg-gray-50 text-slate-700 font-medium rounded-lg transition-all duration-300 flex items-center justify-center gap-3 border border-slate-300"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              <span>Continue with Google</span>
+            </button>
 
-  // --- Styled Components ---
+            {/* Toggle Link */}
+            <p className="text-center text-slate-400 text-sm mt-6">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                type="button"
+                onClick={handleToggleForm}
+                className="text-orange-400 hover:text-orange-300 font-semibold transition-colors"
+              >
+                {isSignUp ? 'Sign In' : 'Sign Up'}
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
 
-  const Star = styled.div`
-    position: absolute;
-    background: white;
-    border-radius: 50%;
-    animation: ${twinkle} 2s infinite;
-    left: ${({ left }) => left};
-    top: ${({ top }) => top};
-    width: ${({ size }) => size};
-    height: ${({ size }) => size};
-    animation-delay: ${({ delay }) => delay};
-  `;
+      <style jsx>{`
+        @keyframes float-particle {
+          0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+          25% { transform: translate(10px, -20px); opacity: 0.4; }
+          50% { transform: translate(-10px, -40px); opacity: 0.6; }
+          75% { transform: translate(15px, -30px); opacity: 0.4; }
+        }
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes spin-reverse {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-10px); }
+          75% { transform: translateX(10px); }
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-float-particle { animation: float-particle 15s infinite ease-in-out; }
+        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+        .animate-spin-reverse { animation: spin-reverse 15s linear infinite; }
+        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+        .animate-shake { animation: shake 0.5s ease-in-out; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+      `}</style>
+    </div>
+  );
+};
 
-  const Container = styled.div`
-    display: flex;
-    height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    overflow: hidden;
-  `;
-
-  const LeftPanel = styled.div`
-    flex: 1;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    position: relative;
-    overflow: hidden;
-  `;
-
-  const CosmicBg = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 30% 70%, rgba(255, 107, 107, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 70% 20%, rgba(78, 205, 196, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 159, 67, 0.2) 0%, transparent 50%);
-  `;
-
-  const Planet = styled.div`
-    position: absolute;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    box-shadow: 0 0 50px rgba(255, 107, 107, 0.4);
-    top: 20%;
-    right: 15%;
-    width: 120px;
-    height: 120px;
-    animation: ${float} 6s ease-in-out infinite;
-  `;
-
-  const Mountains = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 40%;
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    clip-path: polygon(0 100%, 0 60%, 15% 40%, 30% 65%, 45% 35%, 60% 55%, 75% 25%, 90% 45%, 100% 30%, 100% 100%);
-  `;
-
-  const Stars = styled.div`
-    position: absolute;
-    width: 100%;
-    height: 100%;
-  `;
-
-  const LeftContent = styled.div`
-    position: relative;
-    z-index: 10;
-    padding: 40px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  `;
-
-  const LogoSection = styled.div`
-    color: white;
-    h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-    p { font-size: 14px; opacity: 0.8; }
-  `;
-
-  const NavButtons = styled.div`
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-  `;
-
-  const NavBtn = styled.a`
-    padding: 8px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    text-decoration: none;
-    border-radius: 25px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-  `;
-
-  const BottomInfo = styled.div`
-    color: white;
-    h3 { font-size: 18px; margin-bottom: 5px; }
-    p { font-size: 14px; opacity: 0.8; }
-  `;
-
-  const RightPanel = styled.div`
-    flex: 1;
-    background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 50%, #E2E8F0 100%);
-    padding: 60px 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-                  radial-gradient(circle at 80% 20%, rgba(30, 64, 175, 0.05) 0%, transparent 50%);
-      pointer-events: none;
-    }
-  `;
-
-  const animationRule = css`
-    animation: ${props => props.$isAnimating ? (props.$isSignUp ? css`${slideIn}` : css`${slideOut}`) : 'none'} 0.3s ease-in-out forwards;
-  `;
-
-  const FormContainer = styled.div`
-    max-width: 400px;
-    width: 100%;
-    ${animationRule}
-  `;
-
-  const Brand = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 40px;
-    h2 { font-size: 18px; font-weight: 600; color: #333; }
-  `;
-
-  const BrandLogo = styled.div`
-    width: 8px;
-    height: 8px;
-    background: #ff6b6b;
-    border-radius: 50%;
-  `;
-
-  const Welcome = styled.div`
-    margin-bottom: 40px;
-    h1 { font-size: 32px; font-weight: 700; color: #333; margin-bottom: 8px; }
-    p { color: #666; font-size: 14px; }
-  `;
-
-  const FormGroup = styled.div`
-    margin-bottom: 25px;
-    label { 
-      display: block; 
-      font-size: 14px; 
-      color: #1E40AF; 
-      margin-bottom: 8px; 
-      font-weight: 600; 
-    }
-    input {
-      width: 100%;
-      padding: 15px;
-      border: 2px solid rgba(59, 130, 246, 0.1);
-      border-radius: 12px;
-      font-size: 14px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      background: rgba(255, 255, 255, 0.8);
-      color: #1E40AF !important;
-      font-weight: 500;
-      
-      &::placeholder {
-        color: #9CA3AF;
-        font-weight: 400;
-      }
-      
-      &:focus {
-        outline: none;
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        background: rgba(255, 255, 255, 0.95);
-        transform: translateY(-1px);
-      }
-      
-      &:hover {
-        border-color: rgba(59, 130, 246, 0.3);
-        background: rgba(255, 255, 255, 0.9);
-      }
-    }
-  `;
-
-  const PasswordInputWrapper = styled.div`
-    position: relative;
-    width: 100%;
-  `;
-
-  const PasswordToggle = styled.div`
-    position: absolute;
-    top: 50%;
-    right: 15px;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: #999;
-    &:hover {
-      color: #666;
-    }
-  `;
-
-  const RememberForgot = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  `;
-
-  const RememberMe = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      accent-color: #3B82F6;
-      cursor: pointer;
-    }
-    label { font-size: 14px; color: #6B7280; cursor: pointer; margin: 0; }
-  `;
-
-  const ForgotPassword = styled.div`
-    margin: 0;
-    a { 
-      color: #6B7280; 
-      font-size: 14px; 
-      text-decoration: none; 
-      transition: color 0.3s ease;
-      
-      &:hover { 
-        color: #3B82F6; 
-      } 
-    }
-  `;
-
-  const Button = styled.button`
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-
-      &:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-      }
-  `;
-
-
-  const SignInBtn = styled(Button)`
-    background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
-    color: white;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-    
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-      background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);
-    }
-
-    &:active:not(:disabled) {
-      transform: translateY(0);
-    }
-  `;
-
-  const GoogleBtn = styled(Button)`
-    background: white;
-    color: #5f6368;
-    border: 2px solid rgba(59, 130, 246, 0.1);
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    
-    &:hover:not(:disabled) {
-      background: #F8FAFC;
-      border-color: #3B82F6;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-      transform: translateY(-1px);
-    }
-    
-    &:active:not(:disabled) {
-      background: #F1F5F9;
-      transform: translateY(0);
-    }
-  `;
-
-  const GithubBtn = styled(Button)`
-    background: linear-gradient(135deg, #374151 0%, #1F2937 100%);
-    color: white;
-    margin-top: 10px;
-    box-shadow: 0 4px 16px rgba(31, 41, 55, 0.3);
-    
-    &:hover:not(:disabled) {
-      background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
-      box-shadow: 0 6px 20px rgba(31, 41, 55, 0.4);
-      transform: translateY(-1px);
-    }
-    
-    &:active:not(:disabled) {
-      transform: translateY(0);
-    }
-  `;
-
-  const Divider = styled.div`
-    text-align: center;
-    margin: 20px 0;
-    color: #999;
-    font-size: 12px;
-    position: relative;
-    &::before, &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 40%;
-      height: 1px;
-      background: #e1e5e9;
-    }
-    &::before { left: 0; }
-    &::after { right: 0; }
-  `;
-
-  const SocialLogin = styled.div`
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0 30px; /* Adjusted */
-  `;
-
-  const SocialBtn = styled.a`
-    width: 45px;
-    height: 45px;
-    border: 1px solid #e1e5e9;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    color: #666;
-    transition: all 0.3s ease;
-    background: white;
-    font-size: 18px; /* Added for icon size */
-    &:hover {
-      border-color: #ff6b6b;
-      color: #ff6b6b;
-      transform: translateY(-2px);
-    }
-  `;
-
-  const SignupLink = styled.div`
-    text-align: center;
-    color: #6B7280;
-    font-size: 14px;
-    a {
-      color: #3B82F6;
-      text-decoration: none;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      
-      &:hover { 
-        color: #1E40AF;
-        text-decoration: underline; 
-      }
-    }
-  `;
-
-  const ToggleFormButton = styled.button`
-    position: absolute;
-    top: 30px;
-    right: 30px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(59, 130, 246, 0.1);
-    color: #3B82F6;
-    font-size: 24px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(10px);
-    
-    &:hover {
-      color: #1E40AF;
-      transform: rotate(180deg) scale(1.1);
-      border-color: #3B82F6;
-      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
-    }
-  `;
-
-  const ErrorMessage = styled.div`
-    color: #EF4444;
-    background: rgba(239, 68, 68, 0.1);
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-    text-align: center;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    animation: ${fadeIn} 0.3s ease;
-  `;
+export default GearGuardAuth;
