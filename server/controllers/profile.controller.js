@@ -162,4 +162,23 @@ const getActivity = async (req, res) => {
     }
 };
 
-module.exports = { updateAvatar, getProfile, updateProfile, getActivity };
+
+// @route   GET api/profile/usernames
+// @desc    Get all usernames (for technician list)
+// @access  Private (assuming protect middleware is applied)
+const getAllUsernames = async (req, res) => {
+  try {
+    const users = await User.find({}).select('_id username firstName lastName'); // Select _id, username, firstName, lastName
+    res.json(users.map(user => ({
+      _id: user._id,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    })));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+module.exports = { updateAvatar, getProfile, updateProfile, getActivity, getAllUsernames };

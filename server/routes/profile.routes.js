@@ -7,5 +7,6 @@ router.put('/avatar', protect, profileController.updateAvatar);
 router.get('/me', protect, profileController.getProfile);
 router.put('/me', protect, profileController.updateProfile);
 router.get('/activity', protect, profileController.getActivity);
+router.get('/usernames', protect, profileController.getAllUsernames);
 
 module.exports = router;

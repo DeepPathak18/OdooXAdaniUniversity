@@ -77,19 +77,19 @@ export default function CreateMaintenanceRequest({ user }) {
 
     const fetchTechnicianList = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/profile/technicians', {
+        const response = await fetch('http://localhost:5000/api/profile/usernames', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
         if (!response.ok) {
-          throw new Error('Failed to fetch technicians list');
+          throw new Error('Failed to fetch usernames list');
         }
         const data = await response.json();
         setTechnicianList(data);
       } catch (error) {
-        toast.error(error.message || 'Error fetching technicians');
-        console.error('Error fetching technicians:', error);
+        toast.error(error.message || 'Error fetching usernames');
+        console.error('Error fetching usernames:', error);
       }
     };
     
@@ -411,7 +411,7 @@ export default function CreateMaintenanceRequest({ user }) {
                         <option value="">Select Technician (Optional)</option>
                         {technicianList.map((tech) => (
                           <option key={tech._id} value={tech._id}>
-                            {tech.firstName} {tech.lastName}
+                            {tech.username}
                           </option>
                         ))}
                       </select>
