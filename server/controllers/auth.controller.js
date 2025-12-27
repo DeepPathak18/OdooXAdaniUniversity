@@ -114,8 +114,15 @@ const signin = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // --- TEST USER BYPASS ---
-    if (email === "test@example.com") {
+    // --- Dev/Test OTP bypass ---
+    // If SKIP_OTP is set to 'true' or we're in development mode, or the legacy
+    // test account is used, return a JWT immediately instead of starting OTP flow.
+    const skipOtp =
+      process.env.SKIP_OTP === 'true' || process.env.NODE_ENV === 'development' ||
+      email === 'test@example.com';
+
+    if (skipOtp) {
+      console.log('OTP bypass active for signin (SKIP_OTP|NODE_ENV|test user).');
       const payload = {
         user: {
           id: user._id,
@@ -125,14 +132,14 @@ const signin = async (req, res) => {
       return jwt.sign(
         payload,
         process.env.JWT_SECRET,
-        { expiresIn: "1h" },
+        { expiresIn: '5h' },
         (err, token) => {
           if (err) {
-            console.error("JWT Error:", err);
-            return res.status(500).json({ message: "Token generation failed" });
+            console.error('JWT Error:', err);
+            return res.status(500).json({ message: 'Token generation failed' });
           }
           return res.json({
-            message: "Sign in successful (Test User - OTP Bypassed)",
+            message: 'Sign in successful (OTP bypassed)',
             token,
             user: {
               id: user.id,
@@ -145,7 +152,7 @@ const signin = async (req, res) => {
         }
       );
     }
-    // --- END TEST USER BYPASS ---
+    // --- End dev/test bypass ---
 
     // OTP logic for normal users
     const otp = Math.floor(100000 + Math.random() * 900000).toString();

@@ -1,5 +1,11 @@
 const nodemailer = require('nodemailer');
-const twilio = require('twilio');
+let twilio = null;
+try {
+  // Twilio is optional — guard require so the app can run without the package
+  twilio = require('twilio');
+} catch (err) {
+  console.warn('Twilio module not found; SMS functionality will be disabled. To enable SMS, run `npm install twilio`');
+}
 const User = require('../models/User');
 
 /* =========================

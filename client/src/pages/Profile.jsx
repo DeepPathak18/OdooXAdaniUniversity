@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit, Save, X, Camera, Settings, Shield, Award, Globe, Linkedin, Twitter, Instagram, Github } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit, Save, X, Camera, Settings, Shield, Award, Globe  , Github } from 'lucide-react';
 
 const GearGuardProfile = () => {
   const [editMode, setEditMode] = useState(false);

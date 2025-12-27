@@ -24,7 +24,8 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/analytics/dashboard-data', {
+      // Use relative path so Vite dev server proxy handles the backend URL
+      const response = await fetch('/api/analytics/dashboard-data', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -65,17 +66,12 @@ export default function Dashboard({ user, onLogout }) {
 
   // Get status color for maintenance requests
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-500/20 text-green-300';
-      case 'in-progress':
-      case 'in_progress':
-        return 'bg-blue-500/20 text-blue-300';
-      case 'pending':
-        return 'bg-yellow-500/20 text-yellow-300';
-      default:
-        return 'bg-gray-500/20 text-gray-300';
-    }
+    const s = (status || '').toString().toLowerCase();
+    if (s === 'repaired' || s === 'completed') return 'bg-green-500/20 text-green-300';
+    if (s === 'in progress' || s === 'in-progress' || s === 'in_progress') return 'bg-blue-500/20 text-blue-300';
+    if (s === 'new' || s === 'pending') return 'bg-yellow-500/20 text-yellow-300';
+    if (s === 'scrap' || s === 'scrapped') return 'bg-gray-600/20 text-gray-300';
+    return 'bg-gray-500/20 text-gray-300';
   };
 
   // Get priority color
@@ -272,10 +268,10 @@ export default function Dashboard({ user, onLogout }) {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-cyan-400">
-                      {new Date(item.scheduledDate).toLocaleDateString()}
+                      {item.scheduledDate ? new Date(item.scheduledDate).toLocaleDateString() : 'No date'}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {new Date(item.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {item.scheduledDate ? new Date(item.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </p>
                   </div>
                 </div>
@@ -324,7 +320,7 @@ export default function Dashboard({ user, onLogout }) {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">
-                        {new Date(item.createdAt).toLocaleDateString()}
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
                       </td>
                     </tr>
                   ))

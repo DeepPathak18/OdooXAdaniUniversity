@@ -30,4 +30,13 @@ router.get(
   requestController.getAllRequests
 );
 
+// Get a specific request
+router.get('/:id', protect, requestController.getRequestById);
+
+// Update a request
+router.put('/:id', protect, requestController.updateRequest);
+
+// Delete a request (admins/managers only)
+router.delete('/:id', protect, requireRole(['admin', 'manager']), requestController.deleteRequest);
+
 module.exports = router;

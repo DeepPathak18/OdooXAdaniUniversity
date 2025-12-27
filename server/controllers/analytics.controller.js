@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const MaintenanceRequest = require('../models/MaintenanceRequest');
 
 // @desc    Get calendar events (maintenance requests with scheduled dates)
@@ -62,139 +61,12 @@ const getCalendarEvents = async (req, res) => {
 // @desc    Get dashboard statistics
 // @route   GET /api/analytics/dashboard-data
 // @access  Private
-const getDashboardData = async (req, res) => {
-  try {
-    const MaintenanceRequest = require('../models/MaintenanceRequest');
-    const Equipment = require('../models/Equipment');
-    const User = require('../models/User');
-    const MaintenanceTeam = require('../models/MaintenanceTeam');
 
-    // Get maintenance request statistics
-    const totalRequests = await MaintenanceRequest.countDocuments();
-    const pendingRequests = await MaintenanceRequest.countDocuments({ status: 'pending' });
-    const inProgressRequests = await MaintenanceRequest.countDocuments({ status: 'in-progress' });
-    const completedRequests = await MaintenanceRequest.countDocuments({ status: 'completed' });
-
-    // Get today's completed requests
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const completedToday = await MaintenanceRequest.countDocuments({
-      status: 'completed',
-      updatedAt: { $gte: today, $lt: tomorrow }
-    });
-
-    // Get overdue requests (pending requests older than 7 days)
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const overdueRequests = await MaintenanceRequest.countDocuments({
-      status: 'pending',
-      createdAt: { $lt: weekAgo }
-    });
-
-    // Get equipment statistics
-    const totalEquipment = await Equipment.countDocuments();
-    const activeEquipment = await Equipment.countDocuments({ status: 'Active' });
-    const underRepairEquipment = await Equipment.countDocuments({ status: 'Under Repair' });
-    const scrappedEquipment = await Equipment.countDocuments({ status: 'Scrapped' });
-
-    // Calculate equipment health (mock calculation - in real app, this would be based on maintenance history)
-    const equipmentHealth = Math.round((activeEquipment / totalEquipment) * 100) || 0;
-
-    // Get technician statistics
-    const totalTechnicians = await User.countDocuments({ role: 'technician' }) || await User.countDocuments();
-    const activeTechnicians = await MaintenanceRequest.distinct('technician', {
-      status: { $in: ['in-progress', 'pending'] }
-    }).then(techs => techs.filter(tech => tech).length);
-
-    // Calculate technician utilization (mock calculation)
-    const technicianUtilization = totalTechnicians > 0 ? Math.round((activeTechnicians / totalTechnicians) * 100) : 0;
-
-    // Calculate average response time (mock calculation - in hours)
-    const avgResponseTime = 2.4; // This would be calculated from actual data
-
-    // Get upcoming scheduled maintenance (next 7 days)
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
-
-    const upcomingMaintenance = await MaintenanceRequest.find({
-      scheduledDate: {
-        $gte: today,
-        $lte: nextWeek
-      }
-    })
-    .populate('equipment', 'name')
-    .populate('technician', 'firstName lastName')
-    .populate('createdBy', 'firstName lastName')
-    .sort({ scheduledDate: 1 })
-    .limit(5);
-
-    // Get recent maintenance requests (last 10)
-    const recentRequests = await MaintenanceRequest.find()
-      .populate('createdBy', 'firstName lastName')
-      .populate('technician', 'firstName lastName')
-      .populate('equipment', 'name')
-      .populate('team', 'teamName')
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    res.json({
-      statistics: {
-        totalRequests,
-        pendingRequests,
-        inProgressRequests,
-        completedRequests,
-        completedToday,
-        overdueRequests,
-        totalEquipment,
-        activeEquipment,
-        underRepairEquipment,
-        scrappedEquipment,
-        equipmentHealth,
-        totalTechnicians,
-        activeTechnicians,
-        technicianUtilization,
-        avgResponseTime
-      },
-      upcomingMaintenance,
-      recentRequests
-    });
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
 
 // @desc    Get maintenance trends data
 // @route   GET /api/analytics/maintenance-trends
 // @access  Private
-const getMaintenanceTrends = async (req, res) => {
-  try {
-    // This would typically aggregate data for charts
-    // For now, return mock data
-    res.json({
-      monthlyTrends: [
-        { month: 'Jan', requests: 12 },
-        { month: 'Feb', requests: 19 },
-        { month: 'Mar', requests: 15 },
-        { month: 'Apr', requests: 25 },
-        { month: 'May', requests: 22 },
-        { month: 'Jun', requests: 30 }
-      ],
-      categoryBreakdown: [
-        { category: 'Electrical', count: 15 },
-        { category: 'HVAC', count: 12 },
-        { category: 'Plumbing', count: 8 },
-        { category: 'Mechanical', count: 20 }
-      ]
-    });
-  } catch (error) {
-    console.error('Error fetching maintenance trends:', error);
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
+
 
 // @desc    Create sample calendar events for testing
 // @route   POST /api/analytics/create-sample-events
@@ -297,13 +169,8 @@ const createSampleEvents = async (req, res) => {
   }
 };
 
-module.exports = {
-  getCalendarEvents,
-  getDashboardData,
-  getMaintenanceTrends,
-  createSampleEvents
-};
-=======
+// Exported at end of file after all functions are declared
+
 const getDashboardData = (req, res) => {
     try {
         // In a real application, you would fetch this data from a database
@@ -474,7 +341,8 @@ const getMaintenanceTrends = (req, res) => {
 };
 
 module.exports = {
-    getDashboardData,
-    getMaintenanceTrends,
+  getCalendarEvents,
+  getDashboardData,
+  getMaintenanceTrends,
+  createSampleEvents,
 };
->>>>>>> 606d3591d6f46968af34b1072caf8be5fd7adc6e

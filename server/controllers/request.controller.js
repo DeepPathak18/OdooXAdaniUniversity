@@ -122,7 +122,7 @@ const updateRequest = async (req, res) => {
     }
 
     const oldStatus = request.status;
-    const oldTechnician = request.technician;
+    const oldTechnician = request.technician ? String(request.technician) : null;
 
     request.subject = subject || request.subject;
     request.equipment = equipment || request.equipment;
@@ -143,12 +143,14 @@ const updateRequest = async (req, res) => {
     // Send notifications based on changes
     try {
       // If technician changed, notify new technician
-      if (technician && technician !== oldTechnician) {
+      if (technician && String(technician) !== oldTechnician) {
         await sendMaintenanceRequestNotification(null, technician, updatedRequest, 'assigned');
       }
 
-      // If status changed to completed, notify creator
-      if (status === 'completed' && oldStatus !== 'completed') {
+      // If status changed to a completed-like state (Repaired), notify creator
+      const newStatusNormalized = (status || '').toString().toLowerCase();
+      const oldStatusNormalized = (oldStatus || '').toString().toLowerCase();
+      if (newStatusNormalized === 'repaired' && oldStatusNormalized !== 'repaired') {
         await sendCompletionNotification(null, updatedRequest.createdBy, updatedRequest);
       }
     } catch (notificationError) {
@@ -186,8 +188,10 @@ const deleteRequest = async (req, res) => {
 const checkOverdueRequests = async (req, res) => {
   try {
     const now = new Date();
+    // Use the project's status enum values (New, In Progress, Repaired, Scrap)
+    // Consider 'New' and 'In Progress' as outstanding states
     const overdueRequests = await MaintenanceRequest.find({
-      status: { $in: ['pending', 'in-progress'] },
+      status: { $in: ['New', 'In Progress'] },
       scheduledDate: { $lt: now }
     }).populate('technician', 'firstName lastName');
 

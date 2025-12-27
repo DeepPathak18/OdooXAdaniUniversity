@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, Navigate, useNavigate } from 'react-router-dom';
-import ChatPage from "./pages/Chat";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -106,7 +105,6 @@ function App() {
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/chat" element={<PrivateRoute user={user} onLogout={handleLogout}><ChatPage /></PrivateRoute>} />
         <Route
           path="/dashboard"
           element={<PrivateRoute><Dashboard user={user} onLogout={handleLogout} /></PrivateRoute>}

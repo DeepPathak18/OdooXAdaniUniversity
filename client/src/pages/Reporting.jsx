@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
 import {
   Wrench, Download, Filter,
   TrendingUp, CheckCircle, Clock,
@@ -8,10 +7,8 @@ import {
   ChevronDown, X
 } from 'lucide-react';
 import MainNavigation from '../components/common/MainNavigation';
-=======
 import { fetchDashboardData, fetchMaintenanceTrends } from '../api/analytics.api';
 import { toast } from 'react-toastify';
->>>>>>> 606d3591d6f46968af34b1072caf8be5fd7adc6e
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,21 +22,6 @@ import {
   Legend,
 } from 'chart.js';
 import { Line, Pie, Bar } from 'react-chartjs-2';
-import {
-  Wrench,
-  Settings,
-  ChevronDown,
-  Filter,
-  Download,
-  FileText,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  LineChart,
-  PieChart,
-  BarChart3,
-  X,
-} from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -62,12 +44,8 @@ export default function Reporting({ user, onLogout }) {
   const [loading, setLoading] = useState(true); // Set to true initially to load data on mount
   const [error, setError] = useState(null);
 
-<<<<<<< HEAD
   // Mock data - replace with API calls
-=======
   const tabs = ['Maintenance', 'Dashboard', 'Maintenance Calendar', 'Equipment', 'Reporting', 'Teams'];
-
->>>>>>> 606d3591d6f46968af34b1072caf8be5fd7adc6e
   const [reportData, setReportData] = useState({
     totalRequests: 0,
     completedRequests: 0,

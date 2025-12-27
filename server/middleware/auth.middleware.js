@@ -15,7 +15,15 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      req.user = await User.findById(decoded.id).select('-password');
+      // Support tokens that store the id either at top-level (`{ id }`)
+      // or nested under `user` (`{ user: { id } }`) — handle both shapes.
+      const userId = decoded.id || (decoded.user && decoded.user.id);
+
+      if (!userId) {
+        return res.status(401).json({ message: 'Invalid token payload' });
+      }
+
+      req.user = await User.findById(userId).select('-password');
       if (!req.user) {
         return res.status(401).json({ message: 'User not found' });
       }

@@ -3,51 +3,57 @@ const mongoose = require("mongoose");
 
 const equipmentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },                // Samsung Monitor 15"
-    
-    category: { 
-      type: String, 
-      required: true                                      // Computers, Monitors, Software...
+    name: { type: String, required: true }, // Samsung Monitor 15"
+
+    category: {
+      type: String,
+      required: true, // Computers, Monitors, Software...
+    },
+    serialNumber: {
+      type: String,
+    },
+    department: {
+      type: String,
     },
 
-    company: { type: String, required: true },            // My Company (San Francisco)
+    company: { type: String, required: true }, // My Company (San Francisco)
 
-    usedByType: { 
-      type: String, 
-      enum: ["Employee", "Department"], 
-      required: true 
+    usedByType: {
+      type: String,
+      enum: ["Employee", "Department"],
+      required: true,
     },
 
-    assignedEmployee: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "User"                                         // Abigail Peterson
+    assignedEmployee: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Abigail Peterson
     },
 
-    technician: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "User"                                         // Mitchell Admin
+    technician: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Mitchell Admin
     },
 
-    maintenanceTeam: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "MaintenanceTeam"                              // Internal Maintenance
+    maintenanceTeam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MaintenanceTeam", // Internal Maintenance
     },
 
     assignedDate: { type: Date },
 
     scrapDate: { type: Date },
 
-    location: { type: String },                           // Used in location
+    location: { type: String }, // Used in location
 
     workCenter: { type: String },
 
-    status: { 
-      type: String, 
-      enum: ["Active", "Under Repair", "Scrapped"], 
-      default: "Active" 
+    status: {
+      type: String,
+      enum: ["Active", "Under Repair", "Scrapped"],
+      default: "Active",
     },
 
-    description: { type: String }
+    description: { type: String },
   },
   { timestamps: true }
 );

@@ -34,3 +34,43 @@ export const getAllMaintenanceRequests = async () => {
     throw error;
   }
 };
+
+export const createMaintenanceRequest = async (requestData) => {
+  try {
+    const response = await axiosInstance.post('/', requestData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating maintenance request:', error);
+    throw error;
+  }
+};
+
+export const getMaintenanceRequestById = async (id) => {
+  try {
+    const response = await axiosInstance.get(`/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching maintenance request by id:', error);
+    throw error;
+  }
+};
+
+export const updateMaintenanceRequest = async (id, requestData) => {
+  try {
+    const response = await axiosInstance.put(`/${id}`, requestData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating maintenance request:', error);
+    throw error;
+  }
+};
+
+export const deleteMaintenanceRequest = async (id) => {
+  try {
+    const response = await axiosInstance.delete(`/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting maintenance request:', error);
+    throw error;
+  }
+};

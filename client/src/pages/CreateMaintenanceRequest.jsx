@@ -5,6 +5,7 @@ import {
   Save, Send, X, ArrowLeft
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createMaintenanceRequest } from '../api/maintenance.api';
 
 export default function CreateMaintenanceRequest({ user }) {
   const navigate = useNavigate();
@@ -133,7 +134,6 @@ export default function CreateMaintenanceRequest({ user }) {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const requestData = {
         ...formData,
         durationHours: formData.durationHours ? parseFloat(formData.durationHours) : 0,
@@ -142,21 +142,8 @@ export default function CreateMaintenanceRequest({ user }) {
         status: saveAsDraft ? 'New' : formData.status
       };
 
-      const response = await fetch('http://localhost:5000/api/requests', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
+      await createMaintenanceRequest(requestData);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create maintenance request');
-      }
-
-      // const result = await response.json();
       toast.success(saveAsDraft ? 'Request saved as draft' : 'Maintenance request created successfully');
       navigate('/maintenance');
     } catch (error) {
@@ -294,8 +281,8 @@ export default function CreateMaintenanceRequest({ user }) {
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
                         type="date"
-                        name="requestDate"
-                        value={formData.requestDate}
+                        name="scheduledDate"
+                        value={formData.scheduledDate || ''}
                         onChange={handleInputChange}
                         className="w-full pl-11 pr-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                       />

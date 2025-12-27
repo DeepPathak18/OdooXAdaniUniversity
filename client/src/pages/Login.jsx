@@ -146,6 +146,7 @@ const GearGuardAuth = () => {
             localStorage.setItem('user', JSON.stringify(data.user));
           }
           setSuccessMessage('Welcome back! Redirecting to dashboard...');
+          
           setTimeout(() => {
             navigate('/dashboard');
           }, 1000);

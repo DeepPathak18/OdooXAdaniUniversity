@@ -1,13 +1,9 @@
-<<<<<<< HEAD
+
 import React, { useState, useEffect } from 'react';
 import { Wrench, Settings, Plus, Edit2, Trash2, Search, Filter, Download, Upload, Monitor, Laptop } from 'lucide-react';
 import { getAllEquipment, createEquipment, updateEquipment, deleteEquipment } from '../api/equipment.api';
 import { toast } from 'react-toastify';
-=======
-import React, { useState } from 'react';
-import { Wrench, Plus, Edit2, Trash2, Search, Filter, Download, Upload, Monitor, Laptop } from 'lucide-react';
 import MainNavigation from '../components/common/MainNavigation';
->>>>>>> fc2ca4bca6ed27f13d1df351ba30a26a0456ca89
 
 export default function EquipmentListView({ user, onLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -81,13 +77,13 @@ export default function EquipmentListView({ user, onLogout }) {
 
   const openEditModal = (eq) => {
     setNewEquipment({
-      equipmentName: eq.equipmentName || eq.name || '',
-      employee: eq.employee || '',
-      department: eq.department || '',
-      serialNumber: eq.serialNumber || '',
-      technician: eq.technician || eq.technicianName || '',
-      equipmentCategory: eq.equipmentCategory || eq.category || 'Monitors',
-      company: eq.company || 'My Company (San Francisco)'
+      equipmentName: eq.name || "",
+      employee: eq.employee || "",
+      department: eq.department || "",
+      serialNumber: eq.serialNumber || "",
+      technician: eq.technicianName || "",
+      equipmentCategory: eq.category || "Monitors",
+      company: eq.company || "My Company (San Francisco)",
     });
     setEditingId(eq.id || eq._id);
     setIsEditing(true);
