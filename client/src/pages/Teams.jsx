@@ -1,30 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wrench, Settings, Plus, Edit2, Trash2, Search, Users, Building2, UserPlus, X, Save } from 'lucide-react';
+import { getAllTeams, createTeam, updateTeam, deleteTeam } from '../api/team.api';
+import { toast } from 'react-toastify';
 
 export default function TeamsManagement({ user, onLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState(null);
-  const [teams, setTeams] = useState([
-    {
-      id: 1,
-      teamName: 'Internal Maintenance',
-      teamMembers: ['Anas Makari'],
-      company: 'My Company (San Francisco)'
-    },
-    {
-      id: 2,
-      teamName: 'Metrology',
-      teamMembers: ['Marc Demo'],
-      company: 'My Company (San Francisco)'
-    },
-    {
-      id: 3,
-      teamName: 'Subcontractor',
-      teamMembers: ['Maggie Davidson'],
-      company: 'My Company (San Francisco)'
-    }
-  ]);
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [newTeam, setNewTeam] = useState({
     teamName: '',
@@ -35,20 +20,58 @@ export default function TeamsManagement({ user, onLogout }) {
   const [newMemberInput, setNewMemberInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleAddTeam = () => {
-    // Create new team
-    if (!isEditing) {
-      if (newTeam.teamName && newTeam.teamMembers.length > 0) {
-        setTeams([...teams, { ...newTeam, id: teams.length + 1 }]);
-        resetNewTeam();
-      }
+  // Fetch teams on component mount
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+
+  const fetchTeams = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllTeams();
+      setTeams(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch teams');
+      toast.error('Failed to fetch teams');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddTeam = async () => {
+    // Validate required fields
+    if (!newTeam.teamName) {
+      toast.error('Please enter a team name');
+      return;
+    }
+    if (!newTeam.teamMembers || newTeam.teamMembers.length === 0) {
+      toast.error('Please add at least one team member');
       return;
     }
 
-    // Save edited team
-    if (isEditing && editingTeamId != null) {
-      setTeams(teams.map(t => (t.id === editingTeamId ? { ...t, ...newTeam, id: editingTeamId } : t)));
+    try {
+      const teamData = {
+        teamName: newTeam.teamName,
+        teamMembers: newTeam.teamMembers,
+        company: newTeam.company,
+        specialty: newTeam.specialty || ''
+      };
+
+      if (isEditing && editingTeamId) {
+        await updateTeam(editingTeamId, teamData);
+        toast.success('Team updated successfully');
+      } else {
+        await createTeam(teamData);
+        toast.success('Team created successfully');
+      }
+      
       resetNewTeam();
+      fetchTeams(); // Refresh list
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || (isEditing ? 'Failed to update team' : 'Failed to create team');
+      toast.error(errorMessage);
+      console.error('Error saving team:', err);
     }
   };
 
@@ -56,7 +79,8 @@ export default function TeamsManagement({ user, onLogout }) {
     setNewTeam({
       teamName: '',
       teamMembers: [],
-      company: 'My Company (San Francisco)'
+      company: 'My Company (San Francisco)',
+      specialty: ''
     });
     setNewMemberInput('');
     setIsEditing(false);
@@ -81,11 +105,18 @@ export default function TeamsManagement({ user, onLogout }) {
     });
   };
 
-  const handleDeleteTeam = (id) => {
-    const team = teams.find(t => t.id === id);
+  const handleDeleteTeam = async (id) => {
+    const team = teams.find(t => (t.id === id || t._id === id));
     if (!team) return;
     if (window.confirm(`Delete team "${team.teamName}"? This cannot be undone.`)) {
-      setTeams(teams.filter(team => team.id !== id));
+      try {
+        await deleteTeam(id || team._id);
+        toast.success('Team deleted successfully');
+        fetchTeams(); // Refresh list
+      } catch (err) {
+        toast.error('Failed to delete team');
+        console.error('Error deleting team:', err);
+      }
     }
   };
 
@@ -93,18 +124,24 @@ export default function TeamsManagement({ user, onLogout }) {
     setNewTeam({
       teamName: team.teamName || '',
       teamMembers: team.teamMembers ? [...team.teamMembers] : [],
-      company: team.company || 'My Company (San Francisco)'
+      company: team.company || 'My Company (San Francisco)',
+      specialty: team.specialty || ''
     });
-    setEditingTeamId(team.id);
+    setEditingTeamId(team.id || team._id);
     setIsEditing(true);
     setShowAddModal(true);
   };
 
-  const filteredTeams = teams.filter(team =>
-    team.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    team.teamMembers.some(member => member.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    team.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTeams = teams.filter(team => {
+    const searchLower = searchTerm.toLowerCase();
+    const teamName = (team.teamName || '').toLowerCase();
+    const company = (team.company || '').toLowerCase();
+    const members = (team.teamMembers || []).map(m => m.toLowerCase());
+    
+    return teamName.includes(searchLower) ||
+           members.some(member => member.includes(searchLower)) ||
+           company.includes(searchLower);
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
@@ -170,7 +207,11 @@ export default function TeamsManagement({ user, onLogout }) {
 
           {/* Teams Table */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
-            <table className="w-full">
+            {loading && <div className="p-6 text-center text-gray-400">Loading teams...</div>}
+            {error && <div className="p-6 text-center text-red-400">{error}</div>}
+            {!loading && !error && (
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead className="bg-slate-900/50 border-b border-slate-700">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -189,7 +230,7 @@ export default function TeamsManagement({ user, onLogout }) {
               </thead>
               <tbody className="divide-y divide-slate-700">
                 {filteredTeams.map((team) => (
-                  <tr key={team.id} className="hover:bg-slate-700/30 transition-colors">
+                  <tr key={team.id || team._id} className="hover:bg-slate-700/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
@@ -200,7 +241,7 @@ export default function TeamsManagement({ user, onLogout }) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
-                        {team.teamMembers.map((member, index) => (
+                        {(team.teamMembers || []).map((member, index) => (
                           <span 
                             key={index}
                             className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm flex items-center space-x-2"
@@ -225,7 +266,7 @@ export default function TeamsManagement({ user, onLogout }) {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleDeleteTeam(team.id)}
+                          onClick={() => handleDeleteTeam(team.id || team._id)}
                           className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -236,9 +277,11 @@ export default function TeamsManagement({ user, onLogout }) {
                 ))}
               </tbody>
             </table>
+            </div>
+            )}
 
             {/* Empty State */}
-            {filteredTeams.length === 0 && (
+            {!loading && !error && filteredTeams.length === 0 && (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 text-lg">No teams found</p>

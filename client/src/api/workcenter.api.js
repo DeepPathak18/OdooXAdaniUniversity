@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = '/api/teams';
+const API_URL = '/api/workcenters';
 
 // Function to get the JWT token from local storage
 const getToken = () => {
@@ -25,52 +25,52 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-export const getAllTeams = async () => {
+export const getAllWorkCenters = async () => {
   try {
     const response = await axiosInstance.get('/');
     return response.data;
   } catch (error) {
-    console.error('Error fetching teams:', error);
+    console.error('Error fetching work centers:', error);
     throw error;
   }
 };
 
-export const getTeamById = async (id) => {
+export const getWorkCenterById = async (id) => {
   try {
     const response = await axiosInstance.get(`/${id}`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching team:', error);
+    console.error('Error fetching work center:', error);
     throw error;
   }
 };
 
-export const createTeam = async (teamData) => {
+export const createWorkCenter = async (workCenterData) => {
   try {
-    const response = await axiosInstance.post('/', teamData);
+    const response = await axiosInstance.post('/', workCenterData);
     return response.data;
   } catch (error) {
-    console.error('Error creating team:', error);
+    console.error('Error creating work center:', error);
     throw error;
   }
 };
 
-export const updateTeam = async (id, teamData) => {
+export const updateWorkCenter = async (id, workCenterData) => {
   try {
-    const response = await axiosInstance.put(`/${id}`, teamData);
+    const response = await axiosInstance.put(`/${id}`, workCenterData);
     return response.data;
   } catch (error) {
-    console.error('Error updating team:', error);
+    console.error('Error updating work center:', error);
     throw error;
   }
 };
 
-export const deleteTeam = async (id) => {
+export const deleteWorkCenter = async (id) => {
   try {
     const response = await axiosInstance.delete(`/${id}`);
     return response.data;
   } catch (error) {
-    console.error('Error deleting team:', error);
+    console.error('Error deleting work center:', error);
     throw error;
   }
 };

@@ -1,43 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wrench, Settings, Plus, Edit2, Trash2, Search, Filter, Download, Upload, Save, X } from 'lucide-react';
+import { getAllWorkCenters, createWorkCenter, updateWorkCenter, deleteWorkCenter } from '../api/workcenter.api';
+import { toast } from 'react-toastify';
 
 export default function WorkCenterView({ user, onLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [workCenters, setWorkCenters] = useState([
-    {
-      id: 1,
-      name: 'Assembly 1',
-      code: 'ASM-001',
-      tag: 'Production',
-      alternativeWorkcenter: 'Drill 1',
-      costPerHour: 1.00,
-      capacity: 100.00,
-      timeEfficiency: 100.00,
-      oeeTarget: 34.59
-    },
-    {
-      id: 2,
-      name: 'Drill 1',
-      code: 'DRL-001',
-      tag: 'Machining',
-      alternativeWorkcenter: 'Assembly 1',
-      costPerHour: 1.00,
-      capacity: 100.00,
-      timeEfficiency: 100.00,
-      oeeTarget: 90.00
-    },
-    {
-      id: 3,
-      name: 'Welding Station',
-      code: 'WLD-001',
-      tag: 'Fabrication',
-      alternativeWorkcenter: 'Assembly 2',
-      costPerHour: 2.50,
-      capacity: 80.00,
-      timeEfficiency: 95.00,
-      oeeTarget: 85.00
-    }
-  ]);
+  const [workCenters, setWorkCenters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [newWorkCenter, setNewWorkCenter] = useState({
     name: '',
@@ -54,39 +24,59 @@ export default function WorkCenterView({ user, onLogout }) {
   const [editingId, setEditingId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleAddWorkCenter = () => {
-    // If editing, update
-    if (isEditing && editingId != null) {
-      setWorkCenters(workCenters.map(wc => wc.id === editingId ? {
-        ...wc,
-        name: newWorkCenter.name,
-        code: newWorkCenter.code,
-        tag: newWorkCenter.tag,
-        alternativeWorkcenter: newWorkCenter.alternativeWorkcenter,
-        costPerHour: parseFloat(newWorkCenter.costPerHour) || 0,
-        capacity: parseFloat(newWorkCenter.capacity) || 0,
-        timeEfficiency: parseFloat(newWorkCenter.timeEfficiency) || 0,
-        oeeTarget: parseFloat(newWorkCenter.oeeTarget) || 0,
-      } : wc));
-      resetNewWorkCenter();
+  // Fetch work centers on component mount
+  useEffect(() => {
+    fetchWorkCenters();
+  }, []);
+
+  const fetchWorkCenters = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllWorkCenters();
+      setWorkCenters(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch work centers');
+      toast.error('Failed to fetch work centers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddWorkCenter = async () => {
+    // Validate required fields
+    if (!newWorkCenter.name || !newWorkCenter.code) {
+      toast.error('Please fill in required fields (Name and Code)');
       return;
     }
 
-    // Create new
-    if (newWorkCenter.name && newWorkCenter.code) {
-      const nextId = workCenters.length ? Math.max(...workCenters.map(w => w.id)) + 1 : 1;
-      setWorkCenters([...workCenters, {
-        id: nextId,
+    try {
+      const workCenterData = {
         name: newWorkCenter.name,
         code: newWorkCenter.code,
-        tag: newWorkCenter.tag,
-        alternativeWorkcenter: newWorkCenter.alternativeWorkcenter,
+        tag: newWorkCenter.tag || '',
+        alternativeWorkcenter: newWorkCenter.alternativeWorkcenter || '',
         costPerHour: parseFloat(newWorkCenter.costPerHour) || 0,
-        capacity: parseFloat(newWorkCenter.capacity) || 0,
-        timeEfficiency: parseFloat(newWorkCenter.timeEfficiency) || 0,
-        oeeTarget: parseFloat(newWorkCenter.oeeTarget) || 0,
-      }]);
+        capacity: parseFloat(newWorkCenter.capacity) || 100,
+        timeEfficiency: parseFloat(newWorkCenter.timeEfficiency) || 100,
+        oeeTarget: parseFloat(newWorkCenter.oeeTarget) || 85,
+        company: 'My Company (San Francisco)' // Default company, can be made dynamic
+      };
+
+      if (isEditing && editingId) {
+        await updateWorkCenter(editingId, workCenterData);
+        toast.success('Work center updated successfully');
+      } else {
+        await createWorkCenter(workCenterData);
+        toast.success('Work center created successfully');
+      }
+      
       resetNewWorkCenter();
+      fetchWorkCenters(); // Refresh list
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || (isEditing ? 'Failed to update work center' : 'Failed to create work center');
+      toast.error(errorMessage);
+      console.error('Error saving work center:', err);
     }
   };
 
@@ -106,11 +96,18 @@ export default function WorkCenterView({ user, onLogout }) {
     setShowAddModal(false);
   };
 
-  const handleDeleteWorkCenter = (id) => {
-    const wc = workCenters.find(w => w.id === id);
+  const handleDeleteWorkCenter = async (id) => {
+    const wc = workCenters.find(w => (w.id === id || w._id === id));
     if (!wc) return;
     if (window.confirm(`Delete work center "${wc.name}"? This action cannot be undone.`)) {
-      setWorkCenters(workCenters.filter(wc => wc.id !== id));
+      try {
+        await deleteWorkCenter(id || wc._id);
+        toast.success('Work center deleted successfully');
+        fetchWorkCenters(); // Refresh list
+      } catch (err) {
+        toast.error('Failed to delete work center');
+        console.error('Error deleting work center:', err);
+      }
     }
   };
 
@@ -125,16 +122,21 @@ export default function WorkCenterView({ user, onLogout }) {
       timeEfficiency: wc.timeEfficiency != null ? wc.timeEfficiency : '',
       oeeTarget: wc.oeeTarget != null ? wc.oeeTarget : '',
     });
-    setEditingId(wc.id);
+    setEditingId(wc.id || wc._id);
     setIsEditing(true);
     setShowAddModal(true);
   };
 
-  const filteredWorkCenters = workCenters.filter(wc =>
-    wc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wc.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    wc.tag.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredWorkCenters = workCenters.filter(wc => {
+    const searchLower = searchTerm.toLowerCase();
+    const name = (wc.name || '').toLowerCase();
+    const code = (wc.code || '').toLowerCase();
+    const tag = (wc.tag || '').toLowerCase();
+    
+    return name.includes(searchLower) ||
+           code.includes(searchLower) ||
+           tag.includes(searchLower);
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
@@ -220,6 +222,9 @@ export default function WorkCenterView({ user, onLogout }) {
 
           {/* Work Center Table */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
+            {loading && <div className="p-6 text-center text-gray-400">Loading work centers...</div>}
+            {error && <div className="p-6 text-center text-red-400">{error}</div>}
+            {!loading && !error && (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-900/50 border-b border-slate-700">
@@ -255,7 +260,7 @@ export default function WorkCenterView({ user, onLogout }) {
                 </thead>
                 <tbody className="divide-y divide-slate-700">
                   {filteredWorkCenters.map((workCenter) => (
-                    <tr key={workCenter.id} className="hover:bg-slate-700/30 transition-colors">
+                    <tr key={workCenter.id || workCenter._id} className="hover:bg-slate-700/30 transition-colors">
                       <td className="px-6 py-4 text-sm text-white font-medium">
                         {workCenter.name}
                       </td>
@@ -271,21 +276,21 @@ export default function WorkCenterView({ user, onLogout }) {
                         {workCenter.alternativeWorkcenter}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">
-                        ${workCenter.costPerHour.toFixed(2)}
+                        ${(workCenter.costPerHour || 0).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">
-                        {workCenter.capacity.toFixed(2)}
+                        {(workCenter.capacity || 0).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">
-                        {workCenter.timeEfficiency.toFixed(2)}%
+                        {(workCenter.timeEfficiency || 0).toFixed(2)}%
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          workCenter.oeeTarget >= 85 ? 'bg-green-500/20 text-green-300' :
-                          workCenter.oeeTarget >= 70 ? 'bg-yellow-500/20 text-yellow-300' :
+                          (workCenter.oeeTarget || 0) >= 85 ? 'bg-green-500/20 text-green-300' :
+                          (workCenter.oeeTarget || 0) >= 70 ? 'bg-yellow-500/20 text-yellow-300' :
                           'bg-red-500/20 text-red-300'
                         }`}>
-                          {workCenter.oeeTarget.toFixed(2)}%
+                          {(workCenter.oeeTarget || 0).toFixed(2)}%
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
@@ -294,7 +299,7 @@ export default function WorkCenterView({ user, onLogout }) {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => handleDeleteWorkCenter(workCenter.id)}
+                            onClick={() => handleDeleteWorkCenter(workCenter.id || workCenter._id)}
                             className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -306,9 +311,10 @@ export default function WorkCenterView({ user, onLogout }) {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Empty State */}
-            {filteredWorkCenters.length === 0 && (
+            {!loading && !error && filteredWorkCenters.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-400">No work centers found</p>
               </div>
@@ -324,19 +330,19 @@ export default function WorkCenterView({ user, onLogout }) {
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4">
               <p className="text-gray-400 text-sm mb-1">Avg Cost per Hour</p>
               <p className="text-2xl font-bold text-white">
-                ${(workCenters.reduce((acc, wc) => acc + wc.costPerHour, 0) / workCenters.length).toFixed(2)}
+                ${workCenters.length > 0 ? (workCenters.reduce((acc, wc) => acc + (wc.costPerHour || 0), 0) / workCenters.length).toFixed(2) : '0.00'}
               </p>
             </div>
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4">
               <p className="text-gray-400 text-sm mb-1">Avg Time Efficiency</p>
               <p className="text-2xl font-bold text-white">
-                {(workCenters.reduce((acc, wc) => acc + wc.timeEfficiency, 0) / workCenters.length).toFixed(2)}%
+                {workCenters.length > 0 ? (workCenters.reduce((acc, wc) => acc + (wc.timeEfficiency || 0), 0) / workCenters.length).toFixed(2) : '0.00'}%
               </p>
             </div>
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4">
               <p className="text-gray-400 text-sm mb-1">Avg OEE Target</p>
               <p className="text-2xl font-bold text-white">
-                {(workCenters.reduce((acc, wc) => acc + wc.oeeTarget, 0) / workCenters.length).toFixed(2)}%
+                {workCenters.length > 0 ? (workCenters.reduce((acc, wc) => acc + (wc.oeeTarget || 0), 0) / workCenters.length).toFixed(2) : '0.00'}%
               </p>
             </div>
           </div>

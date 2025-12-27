@@ -1,45 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wrench, Settings, Plus, Edit2, Trash2, Search, Filter, Download, Upload, Monitor, Laptop } from 'lucide-react';
+import { getAllEquipment, createEquipment, updateEquipment, deleteEquipment } from '../api/equipment.api';
+import { toast } from 'react-toastify';
 
 export default function EquipmentListView({ user, onLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [equipmentList, setEquipmentList] = useState([
-    {
-      id: 1,
-      equipmentName: 'Samsung Monitor 15"',
-      employee: 'Tejas Acal',
-      department: 'Admin',
-      serialNumber: 'MT/125/22779837',
-      technician: 'Mitchell Admin',
-      equipmentCategory: 'Monitors',
-      company: 'My Company (San Francisco)'
-    },
-    {
-      id: 2,
-      equipmentName: 'Acer Laptop',
-      employee: 'Bhavank P',
-      department: 'Technician',
-      serialNumber: 'MT/122/11112222',
-      technician: 'Marc Demo',
-      equipmentCategory: 'Computers',
-      company: 'My Company (San Francisco)'
-    },
-    {
-      id: 3,
-      equipmentName: 'Dell Desktop PC',
-      employee: 'Sarah Johnson',
-      department: 'Engineering',
-      serialNumber: 'MT/123/33334444',
-      technician: 'Aka Foster',
-      equipmentCategory: 'Computers',
-      company: 'My Company (San Francisco)'
-    }
-  ]);
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Fetch equipment on component mount
+  useEffect(() => {
+    fetchEquipment();
+  }, []);
+
+  const fetchEquipment = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllEquipment();
+      setEquipmentList(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch equipment');
+      toast.error('Failed to fetch equipment');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [newEquipment, setNewEquipment] = useState({
     equipmentName: '',
@@ -51,11 +43,18 @@ export default function EquipmentListView({ user, onLogout }) {
     company: 'My Company (San Francisco)'
   });
 
-  const handleDeleteEquipment = (id) => {
-    const eq = equipmentList.find(e => e.id === id);
+  const handleDeleteEquipment = async (id) => {
+    const eq = equipmentList.find(e => (e.id === id || e._id === id));
     if (!eq) return;
-    if (window.confirm(`Delete equipment "${eq.equipmentName}"? This cannot be undone.`)) {
-      setEquipmentList(equipmentList.filter(eq => eq.id !== id));
+    if (window.confirm(`Delete equipment "${eq.equipmentName || eq.name}"? This cannot be undone.`)) {
+      try {
+        await deleteEquipment(id || eq._id);
+        toast.success('Equipment deleted successfully');
+        fetchEquipment(); // Refresh list
+      } catch (err) {
+        toast.error('Failed to delete equipment');
+        console.error('Error deleting equipment:', err);
+      }
     }
   };
 
@@ -76,40 +75,66 @@ export default function EquipmentListView({ user, onLogout }) {
 
   const openEditModal = (eq) => {
     setNewEquipment({
-      equipmentName: eq.equipmentName || '',
+      equipmentName: eq.equipmentName || eq.name || '',
       employee: eq.employee || '',
       department: eq.department || '',
       serialNumber: eq.serialNumber || '',
-      technician: eq.technician || '',
-      equipmentCategory: eq.equipmentCategory || 'Monitors',
+      technician: eq.technician || eq.technicianName || '',
+      equipmentCategory: eq.equipmentCategory || eq.category || 'Monitors',
       company: eq.company || 'My Company (San Francisco)'
     });
-    setEditingId(eq.id);
+    setEditingId(eq.id || eq._id);
     setIsEditing(true);
     setShowAddModal(true);
   };
 
-  const handleSaveEquipment = () => {
-    if (isEditing && editingId != null) {
-      setEquipmentList(equipmentList.map(e => e.id === editingId ? { ...e, ...newEquipment, id: editingId } : e));
-      resetNewEquipment();
+  const handleSaveEquipment = async () => {
+    if (!newEquipment.equipmentName || !newEquipment.serialNumber) {
+      toast.error('Please fill in required fields (Equipment Name and Serial Number)');
       return;
     }
 
-    // create new
-    if (newEquipment.equipmentName && newEquipment.serialNumber) {
-      const nextId = equipmentList.length ? Math.max(...equipmentList.map(e => e.id)) + 1 : 1;
-      setEquipmentList([...equipmentList, { ...newEquipment, id: nextId }]);
+    try {
+      const equipmentData = {
+        equipmentName: newEquipment.equipmentName,
+        equipmentCategory: newEquipment.equipmentCategory,
+        serialNumber: newEquipment.serialNumber,
+        employee: newEquipment.employee,
+        department: newEquipment.department,
+        technicianName: newEquipment.technician,
+        company: newEquipment.company,
+        usedByType: 'Employee',
+        status: 'Active'
+      };
+
+      if (isEditing && editingId) {
+        await updateEquipment(editingId, equipmentData);
+        toast.success('Equipment updated successfully');
+      } else {
+        await createEquipment(equipmentData);
+        toast.success('Equipment created successfully');
+      }
+      
       resetNewEquipment();
+      fetchEquipment(); // Refresh list
+    } catch (err) {
+      toast.error(isEditing ? 'Failed to update equipment' : 'Failed to create equipment');
+      console.error('Error saving equipment:', err);
     }
   };
 
-  const filteredEquipment = equipmentList.filter(eq =>
-    eq.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    eq.employee.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    eq.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    eq.equipmentCategory.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEquipment = equipmentList.filter(eq => {
+    const searchLower = searchTerm.toLowerCase();
+    const name = (eq.equipmentName || eq.name || '').toLowerCase();
+    const employee = (eq.employee || '').toLowerCase();
+    const serial = (eq.serialNumber || '').toLowerCase();
+    const category = (eq.equipmentCategory || eq.category || '').toLowerCase();
+    
+    return name.includes(searchLower) ||
+           employee.includes(searchLower) ||
+           serial.includes(searchLower) ||
+           category.includes(searchLower);
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
@@ -193,6 +218,9 @@ export default function EquipmentListView({ user, onLogout }) {
 
           {/* Equipment Table */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
+            {loading && <div className="p-6 text-center text-gray-400">Loading equipment...</div>}
+            {error && <div className="p-6 text-center text-red-400">{error}</div>}
+            {!loading && !error && (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-900/50 border-b border-slate-700">
@@ -225,21 +253,21 @@ export default function EquipmentListView({ user, onLogout }) {
                 </thead>
                 <tbody className="divide-y divide-slate-700">
                   {filteredEquipment.map((equipment) => (
-                    <tr key={equipment.id} className="hover:bg-slate-700/30 transition-colors">
+                    <tr key={equipment.id || equipment._id} className="hover:bg-slate-700/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            equipment.equipmentCategory === 'Monitors' 
+                            (equipment.equipmentCategory || equipment.category) === 'Monitors' 
                               ? 'bg-gradient-to-br from-purple-500 to-pink-500'
                               : 'bg-gradient-to-br from-blue-500 to-cyan-500'
                           }`}>
-                            {equipment.equipmentCategory === 'Monitors' ? (
+                            {(equipment.equipmentCategory || equipment.category) === 'Monitors' ? (
                               <Monitor className="w-5 h-5 text-white" />
                             ) : (
                               <Laptop className="w-5 h-5 text-white" />
                             )}
                           </div>
-                          <span className="text-white font-medium">{equipment.equipmentName}</span>
+                          <span className="text-white font-medium">{equipment.equipmentName || equipment.name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">
@@ -258,7 +286,7 @@ export default function EquipmentListView({ user, onLogout }) {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs font-medium">
-                          {equipment.equipmentCategory}
+                          {equipment.equipmentCategory || equipment.category}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-300">
@@ -273,7 +301,7 @@ export default function EquipmentListView({ user, onLogout }) {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => handleDeleteEquipment(equipment.id)}
+                            onClick={() => handleDeleteEquipment(equipment.id || equipment._id)}
                             className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -285,9 +313,10 @@ export default function EquipmentListView({ user, onLogout }) {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Empty State */}
-            {filteredEquipment.length === 0 && (
+            {!loading && !error && filteredEquipment.length === 0 && (
               <div className="text-center py-12">
                 <Monitor className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 text-lg">No equipment found</p>
